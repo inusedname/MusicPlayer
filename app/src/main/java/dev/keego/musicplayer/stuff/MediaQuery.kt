@@ -9,7 +9,7 @@ import dev.keego.musicplayer.model.Song
 import timber.log.Timber
 
 object MediaQuery {
-    fun querySongs(context: Context) {
+    fun querySongs(context: Context): List<Song> {
         val allMusics = mutableListOf<Song>()
         context.contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -17,7 +17,7 @@ object MediaQuery {
                 MediaStore.Audio.Media.DATA,
                 MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.DATE_ADDED,
-                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ALBUM_ARTIST,
                 MediaStore.Audio.Media.DURATION,
                 MediaStore.Audio.Media.ALBUM_ID
             ),
@@ -29,7 +29,7 @@ object MediaQuery {
                 val uri = it.get<String>(MediaStore.Audio.Media.DATA)
                 val title = it.get<String>(MediaStore.Audio.Media.TITLE)
                 val date = it.get<String>(MediaStore.Audio.Media.DATE_ADDED)
-                val artist = it.get<String>(MediaStore.Audio.Media.ARTIST)
+                val artist = it.get<String?>(MediaStore.Audio.Media.ALBUM_ARTIST)
                 val duration = it.get<Long>(MediaStore.Audio.Media.DURATION)
                 val albumId = it.get<Long>(MediaStore.Audio.Media.ALBUM_ID)
 
@@ -50,7 +50,10 @@ object MediaQuery {
         }
 
         Timber.d("All musics: ${allMusics.size} song(s)")
-        Timber.d("First music: ${allMusics.first()}")
+        if (allMusics.isNotEmpty()) {
+            Timber.d("First music: ${allMusics.first()}")
+        }
+        return allMusics
     }
 
     private inline fun <reified T> Cursor.get(columnName: String): T {

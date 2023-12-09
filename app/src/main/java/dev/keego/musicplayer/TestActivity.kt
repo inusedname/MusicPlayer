@@ -3,20 +3,24 @@ package dev.keego.musicplayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.ramcosta.composedestinations.DestinationsNavHost
-import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.foundation.layout.Row
+import androidx.compose.runtime.Composable
 import dev.keego.musicplayer.config.theme.MusicPlayerTheme
-import dev.keego.musicplayer.ui.home.NavGraphs
 
-@AndroidEntryPoint
-class MainActivity : ComponentActivity() {
+class TestActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
             MusicPlayerTheme {
-                DestinationsNavHost(navGraph = NavGraphs.root)
+                body_()
             }
         }
+    }
+}
+
+@Composable
+fun body_() {
+    Row {
+
     }
 }
