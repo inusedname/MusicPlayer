@@ -8,6 +8,6 @@ object MediaPermission : BasePermission() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             arrayOf(Manifest.permission.READ_MEDIA_AUDIO)
         } else {
-            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
 }

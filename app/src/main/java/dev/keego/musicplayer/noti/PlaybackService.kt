@@ -42,9 +42,7 @@ class PlaybackService: MediaSessionService() {
                 .setAvailablePlayerCommands(
                     ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
                         .remove(COMMAND_SEEK_TO_NEXT)
-                        .remove(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                         .remove(COMMAND_SEEK_TO_PREVIOUS)
-                        .remove(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                         .build()
                 ).setAvailableSessionCommands(
                     ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
@@ -68,8 +66,16 @@ class PlaybackService: MediaSessionService() {
             return super.onCustomCommand(session, controller, customCommand, args)
         }
     }
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
-        TODO("Not yet implemented")
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
+
+    override fun onDestroy() {
+        mediaSession?.run {
+            player.release()
+            release()
+            mediaSession = null
+        }
+        super.onDestroy()
     }
 
     companion object {

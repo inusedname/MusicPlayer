@@ -1,5 +1,6 @@
 package dev.keego.musicplayer.ui.home
 
+import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,17 +29,21 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import coil.compose.AsyncImage
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.annotation.RootNavGraph
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.noti.PlaybackService
 import dev.keego.musicplayer.stuff.*
 
 @RootNavGraph(start = true)
 @Destination
+@UnstableApi
 @Composable
 fun home_(navigator: DestinationsNavigator) {
     val activity = LocalContext.current as ComponentActivity
@@ -46,15 +51,16 @@ fun home_(navigator: DestinationsNavigator) {
     val songs by vimel.songs.collectAsStateWithLifecycle()
 
     val player = remember {
-        ExoPlayer.Builder(activity)
-            .build()
+        val token = SessionToken(activity, ComponentName(activity, PlaybackService::class.java))
+        MediaController.Builder(activity, token).buildAsync()
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val lifecycleEventObserver = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_STOP -> player.pause()
+                Lifecycle.Event.ON_STOP -> player.get().pause()
+                Lifecycle.Event.ON_DESTROY -> player.get().release()
                 else -> Unit
             }
         }
@@ -86,16 +92,16 @@ fun home_(navigator: DestinationsNavigator) {
                 items(songs) {
                     _song(it) {
                         song = it
-                        player.setMediaItem(MediaItem.fromUri(it.data))
-                        player.prepare()
-                        player.play()
+                        player.get().setMediaItem(MediaItem.fromUri(it.data))
+                        player.get().prepare()
+                        player.get().play()
                     }
                 }
             }
             song?.let {
                 _dockedPlayer(
                     modifier = Modifier.padding(12.dp),
-                    player = player,
+                    player = player.get(),
                     song = it,
                     favorite = isFavorite,
                     onFavorite = { isFavorite = !isFavorite },
