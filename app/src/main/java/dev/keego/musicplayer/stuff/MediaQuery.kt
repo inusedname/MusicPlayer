@@ -17,7 +17,7 @@ object MediaQuery {
                 MediaStore.Audio.Media.DATA,
                 MediaStore.Audio.Media.TITLE,
                 MediaStore.Audio.Media.DATE_ADDED,
-                MediaStore.Audio.Media.ALBUM_ARTIST,
+                MediaStore.Audio.Media.ARTIST,
                 MediaStore.Audio.Media.DURATION,
                 MediaStore.Audio.Media.ALBUM_ID
             ),
@@ -29,7 +29,7 @@ object MediaQuery {
                 val uri = it.get<String>(MediaStore.Audio.Media.DATA)
                 val title = it.get<String>(MediaStore.Audio.Media.TITLE)
                 val date = it.get<String>(MediaStore.Audio.Media.DATE_ADDED)
-                val artist = it.get<String?>(MediaStore.Audio.Media.ALBUM_ARTIST)
+                val artist = it.get<String>(MediaStore.Audio.Media.ARTIST)
                 val duration = it.get<Long>(MediaStore.Audio.Media.DURATION)
                 val albumId = it.get<Long>(MediaStore.Audio.Media.ALBUM_ID)
 

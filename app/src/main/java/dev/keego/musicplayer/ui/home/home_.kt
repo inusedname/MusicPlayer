@@ -40,6 +40,7 @@ import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.noti.PlaybackService
 import dev.keego.musicplayer.stuff.*
+import dev.keego.musicplayer.ui.player.player_
 
 @RootNavGraph(start = true)
 @Destination
@@ -72,6 +73,7 @@ fun home_(navigator: DestinationsNavigator) {
 
     var song by remember { mutableStateOf<Song?>(null) }
     var isFavorite by remember { mutableStateOf(false) }
+    var showFullScreenPlayer by remember { mutableStateOf(false) }
 
     LaunchedEffect(true) {
         MediaPermission
@@ -105,9 +107,20 @@ fun home_(navigator: DestinationsNavigator) {
                     song = it,
                     favorite = isFavorite,
                     onFavorite = { isFavorite = !isFavorite },
-                    onClick = { /*TODO*/ }
+                    onClick = { showFullScreenPlayer = true }
                 )
             }
+        }
+    }
+
+    if (showFullScreenPlayer && song != null) {
+        player_(
+            song = song!!,
+            player = player.get(),
+            favorite = isFavorite,
+            favoriteClick = { isFavorite = !isFavorite }
+        ) {
+            showFullScreenPlayer = false
         }
     }
 }

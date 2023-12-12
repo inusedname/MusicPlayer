@@ -8,7 +8,7 @@ private const val REFRESH_TIMEOUT = 500L
 
 @Composable
 fun Player.playbackAsState(): State<Boolean> {
-    val playing = remember { mutableStateOf(false) }
+    val playing = remember { mutableStateOf(isPlaying) }
     DisposableEffect(this) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
