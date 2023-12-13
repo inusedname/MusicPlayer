@@ -79,6 +79,7 @@ private fun _player_content(
             }
             AsyncImage(
                 song.albumUri, null, modifier = Modifier
+                    .clip(Shapes.roundedCornerShape)
                     .fillMaxWidth()
                     .aspectRatio(1f)
             )
@@ -106,7 +107,7 @@ private fun _player_content(
                 }
                 _controller(modifier = Modifier.padding(top = 8.dp), player = player)
             }
-            Column {
+            Column(Modifier.padding(top = 8.dp)) {
                 Text(
                     text = "LYRICS",
                     style = MaterialTheme.typography.titleSmall,
@@ -138,16 +139,32 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
     val progress by player.progressAsState()
     val playing by player.playbackAsState()
 
+    var userSeeking by remember { mutableStateOf(false) }
     var userSeekProgress by remember {
         mutableFloatStateOf(0f)
     }
 
     Column(modifier) {
-        Slider(value = progress, onValueChangeFinished = {
-            player.seekTo((userSeekProgress * player.duration).toLong())
-        }, onValueChange = { userSeekProgress = it })
+        Slider(
+            /**
+             * Temporary workaround
+             * Finds a better way
+             */
+            value = if (!userSeeking) progress else userSeekProgress,
+            onValueChangeFinished = {
+                player.seekTo((userSeekProgress * player.duration).toLong())
+                userSeeking = false
+            },
+            onValueChange = {
+                userSeeking = true
+                userSeekProgress = it
+            }
+        )
         Row {
-            Text(text = "0:00", style = MaterialTheme.typography.labelSmall)
+            Text(
+                text = millisToHHmmSS(((if (!userSeeking) progress else userSeekProgress) * player.duration).toLong()),
+                style = MaterialTheme.typography.labelSmall
+            )
             Spacer(Modifier.weight(1f))
             Text(
                 text = remember { millisToHHmmSS(player.duration) },
@@ -157,7 +174,8 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
         Row(
             modifier = Modifier
                 .fillMaxWidth(0.8f)
-                .align(Alignment.CenterHorizontally)
+                .align(Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
                 Icon(imageVector = Icons.Rounded.Shuffle, contentDescription = null)
@@ -167,7 +185,9 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
             }
             IconButton(
                 onClick = if (playing) player::pause else player::play,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f),
                 colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(
