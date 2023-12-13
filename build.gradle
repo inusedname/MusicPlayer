@@ -12,7 +12,6 @@ buildscript {
 
         accompanist_version = '0.28.0'
         compose_bom_version = '2023.10.01'
-        activity_compose_version = '1.6.1'
         firebase_bom_version = '31.1.1'
         compose_destinations_version = '1.8.32-beta'
         room_version = '2.6.1'
