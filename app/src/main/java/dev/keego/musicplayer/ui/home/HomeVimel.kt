@@ -9,25 +9,28 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.remote.LyricRepository
 import dev.keego.musicplayer.stuff.MediaQuery
 import dev.keego.musicplayer.stuff.updateTo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
 @SuppressLint("StaticFieldLeak")
-class HomeVimel @Inject constructor(@ApplicationContext private val context: Context) :
+class HomeVimel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val lyricRepository: LyricRepository,
+) :
     ViewModel() {
     val songs = MutableStateFlow<List<Song>>(emptyList())
 
     fun fetch() {
         viewModelScope.launch(Dispatchers.IO) {
             val externalStorage =
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC)
             MediaScannerConnection.scanFile(
                 context, arrayOf(externalStorage.absolutePath), arrayOf("audio/*")
             ) { path, _ ->
@@ -35,6 +38,22 @@ class HomeVimel @Inject constructor(@ApplicationContext private val context: Con
             }
             val siu = MediaQuery.querySongs(context)
             songs.updateTo { siu }
+            siu.firstOrNull()?.let {
+                searchSong(it)
+            }
+        }
+    }
+
+    fun searchSong(song: Song) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val results = lyricRepository.searchSong(artist = song.artist, title = song.title)
+            Timber.d(
+                """
+                Search song: ${song.title}
+                Result: ${results.code()}
+                Detail: ${results.body()}
+            """.trimIndent()
+            )
         }
     }
 }
