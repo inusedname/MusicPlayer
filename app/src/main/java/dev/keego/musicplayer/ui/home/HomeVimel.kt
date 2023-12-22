@@ -38,22 +38,6 @@ class HomeVimel @Inject constructor(
             }
             val siu = MediaQuery.querySongs(context)
             songs.updateTo { siu }
-            siu.firstOrNull()?.let {
-                getLyrics(it)
-            }
-        }
-    }
-
-    fun getLyrics(song: Song) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val results = lyricRepository.search(song)
-            Timber.d(
-                """
-                Search song: ${song.title}
-                Result: ${results.code()}
-                Detail: ${results.body()}
-            """.trimIndent()
-            )
         }
     }
 }

@@ -1,5 +1,7 @@
 package dev.keego.musicplayer.model
 
+import dev.keego.musicplayer.local.Lyric
+
 data class LrcLyric(
     val content: Map<Timestamp, String>,
 ) {
@@ -10,7 +12,7 @@ data class LrcLyric(
     )
 
     companion object {
-        fun fromText(raw: String): LrcLyric {
+        private fun fromText(raw: String): LrcLyric {
             val mutableMap = mutableMapOf<Timestamp, String>()
             val pattern = "\\[(\\d\\d):(\\d\\d)\\.(\\d\\d)\\](.+)"
             val matcher = Regex(pattern)
@@ -22,6 +24,10 @@ data class LrcLyric(
                 )] = it.groupValues[4]
             }
             return LrcLyric(mutableMap.toMap())
+        }
+
+        fun fromLyric(lyric: Lyric): LrcLyric {
+            return fromText(lyric.lrcContent)
         }
     }
 }

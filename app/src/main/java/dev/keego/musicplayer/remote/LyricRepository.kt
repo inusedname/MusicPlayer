@@ -1,23 +1,49 @@
 package dev.keego.musicplayer.remote
 
+import dev.keego.musicplayer.local.LocalLyricDao
+import dev.keego.musicplayer.local.Lyric
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.remote.lrclib.BestMatchResultPOJO
 import dev.keego.musicplayer.remote.lrclib.LrcLibLyricDao
+import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 import timber.log.Timber
 
-class LyricRepository(private val dao: LrcLibLyricDao) {
-    suspend fun getBestMatch(song: Song): Response<BestMatchResultPOJO> {
-        Timber.d("""
-            ${song.title}
-            ${song.artist}
-            ${song.duration / 1000}
-        """.trimIndent())
-        // TODO: missing album handling
-        return dao.getBestMatch(song.title, song.artist, song.title, (song.duration / 1000L).toInt())
+class LyricRepository(
+    private val remoteDao: LrcLibLyricDao,
+    private val localDao: LocalLyricDao,
+) {
+    suspend fun getBestMatch(song: Song): Response<Lyric> {
+        val local: Lyric? = localDao.get(song.mediaStoreId)
+        if (local != null) {
+            return Response.success(local)
+        }
+        val response = remoteDao.getBestMatch(
+            song.title,
+            song.artist,
+            song.album.ifEmpty { song.title },
+            (song.duration / 1000).toInt()
+        )
+        if (response.isSuccessful) {
+            val body = response.body()!!
+            val remote = Lyric(
+                mediaStoreId = song.mediaStoreId,
+                lrcLibId = body.id,
+                query = Lyric.getQuery(song),
+                lrcContent = body.syncedLyrics
+            )
+            localDao.save(remote)
+            return Response.success(remote)
+        } else {
+            Timber.e(response.message())
+            return Response.error(
+                response.code(),
+                response.errorBody() ?: "undefined".toResponseBody(null)
+            )
+        }
     }
 
     suspend fun search(song: Song): Response<List<BestMatchResultPOJO>> {
-        return dao.search("${song.title} ${song.artist}")
+        return remoteDao.search("${song.title} ${song.artist}")
     }
 }

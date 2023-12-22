@@ -40,6 +40,7 @@ import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.noti.PlaybackService
 import dev.keego.musicplayer.stuff.*
+import dev.keego.musicplayer.ui.player.PlayerVimel
 import dev.keego.musicplayer.ui.player.player_
 
 @RootNavGraph(start = true)
@@ -49,6 +50,7 @@ import dev.keego.musicplayer.ui.player.player_
 fun home_(navigator: DestinationsNavigator) {
     val activity = LocalContext.current as ComponentActivity
     val vimel = hiltViewModel<HomeVimel>()
+    val playerVimel = hiltViewModel<PlayerVimel>()
     val songs by vimel.songs.collectAsStateWithLifecycle()
 
     val player = remember {
@@ -74,6 +76,12 @@ fun home_(navigator: DestinationsNavigator) {
     var song by remember { mutableStateOf<Song?>(null) }
     var isFavorite by remember { mutableStateOf(false) }
     var showFullScreenPlayer by remember { mutableStateOf(false) }
+
+    LaunchedEffect(song) {
+        song?.let {
+            playerVimel.queryLyric(it)
+        }
+    }
 
     LaunchedEffect(true) {
         MediaPermission
@@ -115,6 +123,7 @@ fun home_(navigator: DestinationsNavigator) {
 
     if (showFullScreenPlayer && song != null) {
         player_(
+            playerVimel = playerVimel,
             song = song!!,
             player = player.get(),
             favorite = isFavorite,
@@ -158,7 +167,7 @@ fun _dockedPlayer(
                     .weight(1f)
             ) {
                 Text(text = song.title, style = MaterialTheme.typography.titleSmall)
-                Text(text = song.artist ?: "Unknown")
+                Text(text = song.artist)
             }
             IconButton(onClick = onFavorite) {
                 Icon(
@@ -210,7 +219,7 @@ fun _song(song: Song, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = song.artist ?: "Unknown",
+                text = song.artist,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .alpha(0.8f)

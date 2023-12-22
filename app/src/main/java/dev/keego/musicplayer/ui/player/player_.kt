@@ -1,8 +1,10 @@
 package dev.keego.musicplayer.ui.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
@@ -28,16 +31,20 @@ import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.stuff.playbackAsState
 import dev.keego.musicplayer.stuff.progressAsState
+import dev.keego.musicplayer.ui.UiState
+import dev.keego.musicplayer.ui.lyric.browse_lyrics_
 
 @UnstableApi
 @Composable
 fun player_(
+    playerVimel: PlayerVimel,
     song: Song,
     player: Player,
     favorite: Boolean,
     favoriteClick: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var showBrowseLyrics by remember { mutableStateOf(false) }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -45,12 +52,20 @@ fun player_(
         CompositionLocalProvider(LocalContentColor provides Color.White) {
             _player_content(
                 modifier = Modifier.background(MaterialTheme.colorScheme.background),
+                playerVimel = playerVimel,
                 song = song,
                 player = player,
                 favorite = favorite,
                 favoriteClick = favoriteClick,
                 closeClick = onDismiss
-            )
+            ) {
+                showBrowseLyrics = true
+            }
+            if (showBrowseLyrics) {
+                browse_lyrics_(onDismiss = { showBrowseLyrics = false }) {
+                    /*TODO*/
+                }
+            }
         }
     }
 }
@@ -59,12 +74,17 @@ fun player_(
 @Composable
 private fun _player_content(
     modifier: Modifier = Modifier,
+    playerVimel: PlayerVimel,
     song: Song,
     player: Player,
     favorite: Boolean,
     favoriteClick: (Boolean) -> Unit,
     closeClick: () -> Unit,
+    showBrowseLyrics: () -> Unit,
 ) {
+    val lyricUiState by playerVimel.lyricUiState.collectAsStateWithLifecycle()
+    val lyric by playerVimel.lyric.collectAsStateWithLifecycle()
+
     Column(
         modifier
             .verticalScroll(rememberScrollState())
@@ -88,7 +108,7 @@ private fun _player_content(
                     Text(text = song.title, style = MaterialTheme.typography.headlineMedium)
                     Row {
                         Text(
-                            text = song.artist ?: "Unknown",
+                            text = song.artist,
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.alpha(0.7f)
                         )
@@ -107,27 +127,60 @@ private fun _player_content(
                 }
                 _controller(modifier = Modifier.padding(top = 8.dp), player = player)
             }
-            Column(Modifier.padding(top = 8.dp)) {
+            Column(
+                Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.5f)
+            ) {
                 Text(
-                    text = "LYRICS",
+                    text = "Lyrics".uppercase(),
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)
                 )
                 Box {
-                    LazyColumn(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(100.dp)
-                            .clip(Shapes.roundedCornerShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                    ) {
-
+                    when (lyricUiState) {
+                        UiState.LOADING -> {
+                            CircularProgressIndicator(Modifier.align(Alignment.Center))
+                        }
+                        UiState.SUCCESS -> {
+                            lyric?.let {
+                                LazyColumn(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .fillMaxHeight()
+                                        .padding(horizontal = 8.dp)
+                                ) {
+                                    items(it.content.values.toList()) { line ->
+                                        Text(
+                                            text = line,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        is UiState.ERROR -> {
+                            Text(
+                                text = (lyricUiState as UiState.ERROR).exception,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
                     }
+                }
+                Row(
+                    Modifier
+                        .clickable(onClick = showBrowseLyrics)
+                        .clip(Shapes.roundedCornerShape)
+                        .padding(vertical = 6.dp, horizontal = 8.dp)
+                ) {
                     Text(
-                        text = "No lyrics found",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.align(Alignment.Center)
+                        text = "Not what you're looking for?",
+                        style = MaterialTheme.typography.labelSmall
                     )
+                    Icon(Icons.Rounded.ArrowForward, null, Modifier.padding(start = 4.dp))
                 }
             }
         }
