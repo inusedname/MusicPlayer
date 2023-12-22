@@ -1,4 +1,4 @@
-package dev.keego.musicplayer.remote
+package dev.keego.musicplayer.remote.genius
 
 import com.google.gson.annotations.SerializedName
 

@@ -4,8 +4,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import dev.keego.musicplayer.remote.LyricDao
 import dev.keego.musicplayer.remote.LyricRepository
+import dev.keego.musicplayer.remote.lrclib.LrcLibLyricDao
 import javax.inject.Singleton
 
 @InstallIn(SingletonComponent::class)
@@ -15,6 +15,6 @@ class AppModule {
     @Provides
     @Singleton
     fun provideLyricRepository(): LyricRepository {
-        return LyricRepository(LyricDao.build())
+        return LyricRepository(LrcLibLyricDao.build())
     }
 }
