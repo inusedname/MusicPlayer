@@ -4,6 +4,8 @@ plugins {
     id 'kotlinx-serialization'
     id 'kotlin-parcelize'
     id 'com.google.devtools.ksp' version "$ksp_version"
+    id 'com.google.gms.google-services'
+    id 'com.google.firebase.appdistribution'
 
     // <hilt>
     id 'com.google.dagger.hilt.android'
@@ -30,6 +32,15 @@ android {
     buildTypes {
         debug {
             debuggable true
+            firebaseAppDistribution {
+                artifactType = "APK"
+                groups = "standard"
+                serviceCredentialsFile = file("/firebase-app-distribution.json")
+            }
+            task publishDebug {
+                dependsOn 'assembleDebug'
+                dependsOn 'appDistributionUploadDebug'
+            }
         }
         release {
             minifyEnabled true
@@ -120,6 +131,10 @@ dependencies {
     implementation "io.github.raamcosta.compose-destinations:animations-core:$compose_destinations_version"
     ksp "io.github.raamcosta.compose-destinations:ksp:$compose_destinations_version"
     implementation "br.com.devsrsouza.compose.icons:font-awesome:1.1.0"
+
+    // <firebase>
+    implementation platform("com.google.firebase:firebase-bom:32.7.0")
+    implementation("com.google.firebase:firebase-analytics")
 
     // <room>
     implementation "androidx.room:room-runtime:$room_version"

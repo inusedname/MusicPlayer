@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1055880167146",
+    "project_id": "music-player-b6e05",
+    "storage_bucket": "music-player-b6e05.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1055880167146:android:7b119d433e0f86550e2193",
+        "android_client_info": {
+          "package_name": "dev.keego.musicplayer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCeBuZanM_lzLoYdZAtnfF_rOYEP3GcNtM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

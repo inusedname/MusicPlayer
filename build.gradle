@@ -32,4 +32,6 @@ plugins {
     id "com.google.devtools.ksp" version "$ksp_version" apply false
 
     id 'com.google.dagger.hilt.android' version "$hilt_version" apply false
+    id 'com.google.gms.google-services' version "4.4.0" apply false
+    id 'com.google.firebase.appdistribution' version "4.0.1" apply false
 }
