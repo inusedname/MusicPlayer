@@ -83,9 +83,6 @@ private fun _player_content(
     closeClick: () -> Unit,
     showBrowseLyrics: () -> Unit,
 ) {
-    val lyricUiState by playerVimel.lyricUiState.collectAsStateWithLifecycle()
-    val lyric by playerVimel.lyric.collectAsStateWithLifecycle()
-
     Column(
         modifier
             .navigationBarsPadding()
@@ -129,87 +126,100 @@ private fun _player_content(
                 }
                 _controller(modifier = Modifier.padding(top = 8.dp), player = player)
             }
-            Column(
-                Modifier
-                    .padding(top = 8.dp)
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.5f)
-            ) {
-                Text(
-                    text = "Lyrics".uppercase(),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)
-                )
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(Shapes.roundedCornerShape)
-                        .background(Color.Black)
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    when (lyricUiState) {
-                        UiState.LOADING -> {
-                            Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator()
+            _lyric(playerVimel, showBrowseLyrics)
+            Spacer(modifier = Modifier.height(100.dp))
+        }
+    }
+}
+
+@Composable
+private fun _lyric(
+    playerVimel: PlayerVimel,
+    showBrowseLyrics: () -> Unit,
+) {
+    val lyricUiState by playerVimel.lyricUiState.collectAsStateWithLifecycle()
+    val lyric by playerVimel.lyric.collectAsStateWithLifecycle()
+    Column(
+        Modifier
+            .padding(top = 8.dp)
+            .fillMaxWidth()
+            .fillMaxHeight(0.5f)
+    ) {
+        Text(
+            text = "Lyrics".uppercase(),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)
+        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .clip(Shapes.roundedCornerShape)
+                .background(Color.Black)
+                .padding(8.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            when (lyricUiState) {
+                UiState.LOADING -> {
+                    Column(
+                        Modifier.fillMaxHeight(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator()
+                        Text(
+                            text = "Fetching lyrics...",
+                            textAlign = TextAlign.Center,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+                }
+
+                UiState.SUCCESS -> {
+                    lyric?.let {
+                        LazyColumn(
+                            Modifier
+                                .fillMaxSize()
+                        ) {
+                            items(it.content.values.toList()) { line ->
                                 Text(
-                                    text = "Fetching lyrics...",
-                                    textAlign = TextAlign.Center,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    modifier = Modifier.padding(top = 8.dp)
+                                    text = line,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.padding(vertical = 4.dp)
                                 )
                             }
                         }
-
-                        UiState.SUCCESS -> {
-                            lyric?.let {
-                                LazyColumn(
-                                    Modifier
-                                        .fillMaxSize()
-                                ) {
-                                    items(it.content.values.toList()) { line ->
-                                        Text(
-                                            text = line,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            modifier = Modifier.padding(vertical = 4.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        is UiState.ERROR -> {
-                            Text(
-                                text = (lyricUiState as UiState.ERROR).exception,
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                        }
                     }
                 }
-                Row(
-                    Modifier
-                        .padding(top = 8.dp)
-                        .clip(Shapes.roundedCornerShape)
-                        .clickable(onClick = showBrowseLyrics)
-                        .padding(vertical = 6.dp, horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+
+                is UiState.ERROR -> {
                     Text(
-                        text = "Not what you're looking for?",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                    Icon(
-                        Icons.Rounded.ArrowForward, null,
-                        Modifier
-                            .padding(start = 4.dp)
-                            .size(16.dp)
+                        text = (lyricUiState as UiState.ERROR).exception,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(100.dp))
+        }
+        Row(
+            Modifier
+                .padding(top = 8.dp)
+                .clip(Shapes.roundedCornerShape)
+                .clickable(onClick = showBrowseLyrics)
+                .padding(vertical = 6.dp, horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Not what you're looking for?",
+                style = MaterialTheme.typography.labelSmall
+            )
+            Icon(
+                Icons.Rounded.ArrowForward, null,
+                Modifier
+                    .padding(start = 4.dp)
+                    .size(16.dp)
+            )
         }
     }
 }
