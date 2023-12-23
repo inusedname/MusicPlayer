@@ -13,39 +13,48 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.keego.musicplayer.config.theme.Shapes
+import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.remote.lrclib.BestMatchResultPOJO
+import dev.keego.musicplayer.stuff.PageSizeUtil
 import dev.keego.musicplayer.ui.UiState
 import kotlinx.coroutines.launch
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun browse_lyrics_(onDismiss: () -> Unit, onSubmit: (BestMatchResultPOJO) -> Unit) {
+fun browse_lyrics_(song: Song, onDismiss: () -> Unit, onSubmit: (BestMatchResultPOJO) -> Unit) {
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        dragHandle = null
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
-        _browse_lyrics_content(onDismiss = {
-            scope.launch { state.hide() }
-            onDismiss()
+        _browse_lyrics_content(song = song, onDismiss = {
+            scope.launch { state.hide(); onDismiss() }
         }, onSubmit = onSubmit)
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun _browse_lyrics_content(onDismiss: () -> Unit, onSubmit: (BestMatchResultPOJO) -> Unit) {
+private fun _browse_lyrics_content(
+    song: Song,
+    onDismiss: () -> Unit,
+    onSubmit: (BestMatchResultPOJO) -> Unit,
+) {
     val vimel = hiltViewModel<BrowseLyricVimel>()
     val uiState by vimel.uiState.collectAsStateWithLifecycle()
     val results by vimel.results.collectAsStateWithLifecycle()
+
+    LaunchedEffect(true) {
+        vimel.search(song)
+    }
 
     var selectedIdx: Int? by remember { mutableStateOf(null) }
 
@@ -60,20 +69,30 @@ private fun _browse_lyrics_content(onDismiss: () -> Unit, onSubmit: (BestMatchRe
         ) {
             when (uiState) {
                 UiState.LOADING -> {
-                    CircularProgressIndicator()
-                    Text(text = "Please wait...")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Text(text = "Please wait...", modifier = Modifier.padding(top = 8.dp))
+                    }
                 }
 
                 is UiState.ERROR -> {
-                    Text(text = "Error", fontWeight = FontWeight.Bold, color = Color.Red)
+                    Text(
+                        text = "Error",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Red
+                    )
                     Text(text = (uiState as UiState.ERROR).exception)
                 }
 
                 UiState.SUCCESS -> {
-                    HorizontalPager(state = rememberPagerState(
-                        initialPage = 0,
-                        initialPageOffsetFraction = 0.2f
-                    ) { results.size }) {
+                    var viewWidth by remember { mutableIntStateOf(0) }
+                    HorizontalPager(
+                        state = rememberPagerState { results.size },
+                        pageSpacing = 16.dp,
+                        contentPadding = PaddingValues(start = 16.dp),
+                        pageSize = PageSizeUtil.Fixed(pixel = (viewWidth * 0.8f).toInt()),
+                        modifier = Modifier.onSizeChanged { viewWidth = it.width }
+                    ) {
                         _result(results[it], selectedIdx == it) {
                             selectedIdx = it
                         }
@@ -81,21 +100,31 @@ private fun _browse_lyrics_content(onDismiss: () -> Unit, onSubmit: (BestMatchRe
                 }
             }
         }
-        Text(text = "Select your preferred lyric".uppercase(), style = MaterialTheme.typography.labelSmall)
-        IconButton(onClick = onDismiss) {
-            Icon(
-                Icons.Rounded.Close,
-                contentDescription = null,
-                modifier = Modifier.fillMaxWidth(0.2f)
-            )
-        }
-        IconButton(onClick = { onSubmit(results[selectedIdx!!]) }, enabled = selectedIdx != null) {
-            Icon(
-                Icons.Rounded.Check,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.fillMaxWidth(0.2f)
-            )
+        Text(
+            modifier = Modifier.padding(top = 16.dp),
+            text = "Select your preferred lyric".uppercase(),
+            style = MaterialTheme.typography.labelSmall
+        )
+        Row(Modifier.padding(vertical = 16.dp)) {
+            IconButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth(0.3f)) {
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = null
+                )
+            }
+            FilledIconButton(
+                onClick = { onSubmit(results[selectedIdx!!]) },
+                enabled = selectedIdx != null,
+                modifier = Modifier.fillMaxWidth(0.3f),
+                colors = IconButtonDefaults.filledIconButtonColors(
+
+                )
+            ) {
+                Icon(
+                    Icons.Rounded.Check,
+                    contentDescription = null
+                )
+            }
         }
     }
 }
@@ -106,14 +135,19 @@ private fun _result(result: BestMatchResultPOJO, selected: Boolean, onClick: () 
     Card(
         onClick = onClick,
         shape = Shapes.roundedCornerShape,
-        border = if (selected) null else BorderStroke(2.dp, Color.White),
+        border = if (selected) BorderStroke(2.dp, Color.White) else null,
     ) {
-        Column(Modifier.fillMaxSize()) {
-            Text(text = result.trackName, fontWeight = FontWeight.Bold)
-            Text(text = result.artistName)
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp)) {
+            Text(text = result.trackName, style = MaterialTheme.typography.titleMedium)
+            Text(text = result.artistName, style = MaterialTheme.typography.labelSmall)
             Text(
                 text = result.plainLyrics,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .weight(1f),
                 overflow = TextOverflow.Ellipsis
             )
         }

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -62,7 +63,7 @@ fun player_(
                 showBrowseLyrics = true
             }
             if (showBrowseLyrics) {
-                browse_lyrics_(onDismiss = { showBrowseLyrics = false }) {
+                browse_lyrics_(song = song, onDismiss = { showBrowseLyrics = false }) {
                     /*TODO*/
                 }
             }
@@ -87,6 +88,7 @@ private fun _player_content(
 
     Column(
         modifier
+            .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 8.dp)
     ) {
@@ -138,32 +140,49 @@ private fun _player_content(
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(start = 8.dp, bottom = 16.dp)
                 )
-                Box {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(Shapes.roundedCornerShape)
+                        .background(Color.Black)
+                        .padding(8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     when (lyricUiState) {
                         UiState.LOADING -> {
-                            CircularProgressIndicator(Modifier.align(Alignment.Center))
+                            Column(Modifier.fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator()
+                                Text(
+                                    text = "Fetching lyrics...",
+                                    textAlign = TextAlign.Center,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
                         }
+
                         UiState.SUCCESS -> {
                             lyric?.let {
                                 LazyColumn(
                                     Modifier
-                                        .fillMaxWidth()
-                                        .fillMaxHeight()
-                                        .padding(horizontal = 8.dp)
+                                        .fillMaxSize()
                                 ) {
                                     items(it.content.values.toList()) { line ->
                                         Text(
                                             text = line,
-                                            style = MaterialTheme.typography.labelSmall,
+                                            style = MaterialTheme.typography.bodyMedium,
                                             modifier = Modifier.padding(vertical = 4.dp)
                                         )
                                     }
                                 }
                             }
                         }
+
                         is UiState.ERROR -> {
                             Text(
                                 text = (lyricUiState as UiState.ERROR).exception,
+                                textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.align(Alignment.Center)
                             )
@@ -172,17 +191,25 @@ private fun _player_content(
                 }
                 Row(
                     Modifier
-                        .clickable(onClick = showBrowseLyrics)
+                        .padding(top = 8.dp)
                         .clip(Shapes.roundedCornerShape)
-                        .padding(vertical = 6.dp, horizontal = 8.dp)
+                        .clickable(onClick = showBrowseLyrics)
+                        .padding(vertical = 6.dp, horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "Not what you're looking for?",
                         style = MaterialTheme.typography.labelSmall
                     )
-                    Icon(Icons.Rounded.ArrowForward, null, Modifier.padding(start = 4.dp))
+                    Icon(
+                        Icons.Rounded.ArrowForward, null,
+                        Modifier
+                            .padding(start = 4.dp)
+                            .size(16.dp)
+                    )
                 }
             }
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }

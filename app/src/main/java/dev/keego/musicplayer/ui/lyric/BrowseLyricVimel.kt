@@ -19,8 +19,9 @@ class BrowseLyricVimel @Inject constructor(private val lyricRepository: LyricRep
     val uiState = MutableStateFlow<UiState>(UiState.LOADING)
     val results = MutableStateFlow<List<BestMatchResultPOJO>>(emptyList())
 
-    fun fetch(song: Song) {
+    fun search(song: Song) {
         viewModelScope.launch(Dispatchers.IO) {
+            uiState.value = UiState.LOADING
             val response = lyricRepository.search(song)
             if (!response.isSuccessful) {
                 Timber.e("fetch: ${response.errorBody()}")

@@ -21,12 +21,13 @@ class PlayerVimel @Inject constructor(
 
     fun queryLyric(song: Song) {
         viewModelScope.launch(Dispatchers.IO) {
+            lyricUiState.value = UiState.LOADING
             val result = lyricRepository.getBestMatch(song)
             if (result.isSuccessful) {
                 lyricUiState.value = UiState.SUCCESS
                 lyric.value = LrcLyric.fromLyric(result.body()!!)
             } else {
-                lyricUiState.value = UiState.ERROR(result.errorBody().toString())
+                lyricUiState.value = UiState.ERROR(result.message())
             }
         }
     }
