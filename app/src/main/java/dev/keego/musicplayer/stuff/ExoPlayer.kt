@@ -35,3 +35,15 @@ fun Player.progressAsState(): State<Float> {
     }
     return progress
 }
+
+@Composable
+fun Player.progressMsAsState(): State<Long> {
+    val progress = remember { mutableLongStateOf(currentPosition) }
+    LaunchedEffect(true) {
+        while (true) {
+            progress.longValue = currentPosition
+            delay(REFRESH_TIMEOUT)
+        }
+    }
+    return progress
+}

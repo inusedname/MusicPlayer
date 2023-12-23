@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,6 +32,7 @@ import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.stuff.playbackAsState
 import dev.keego.musicplayer.stuff.progressAsState
+import dev.keego.musicplayer.stuff.progressMsAsState
 import dev.keego.musicplayer.ui.UiState
 import dev.keego.musicplayer.ui.lyric.browse_lyrics_
 
@@ -126,7 +127,7 @@ private fun _player_content(
                 }
                 _controller(modifier = Modifier.padding(top = 8.dp), player = player)
             }
-            _lyric(playerVimel, showBrowseLyrics)
+            _lyric(player, playerVimel, showBrowseLyrics)
             Spacer(modifier = Modifier.height(100.dp))
         }
     }
@@ -134,11 +135,26 @@ private fun _player_content(
 
 @Composable
 private fun _lyric(
+    player: Player,
     playerVimel: PlayerVimel,
     showBrowseLyrics: () -> Unit,
 ) {
     val lyricUiState by playerVimel.lyricUiState.collectAsStateWithLifecycle()
     val lyric by playerVimel.lyric.collectAsStateWithLifecycle()
+    val lyricTimestamps = remember(lyricUiState) {
+        if (lyricUiState == UiState.SUCCESS) {
+            lyric!!.content.keys.toList()
+        } else {
+            null
+        }
+    }
+
+    val progress by player.progressMsAsState()
+    var highlightedLyricLine by remember { mutableIntStateOf(0) }
+    LaunchedEffect(progress) {
+        highlightedLyricLine = lyricTimestamps?.indexOfLast { it <= progress } ?: 0
+    }
+
     Column(
         Modifier
             .padding(top = 8.dp)
@@ -155,7 +171,7 @@ private fun _lyric(
                 .fillMaxWidth()
                 .height(200.dp)
                 .clip(Shapes.roundedCornerShape)
-                .background(Color.Black)
+                .background(MaterialTheme.colorScheme.primary)
                 .padding(8.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -181,11 +197,17 @@ private fun _lyric(
                             Modifier
                                 .fillMaxSize()
                         ) {
-                            items(it.content.values.toList()) { line ->
+                            itemsIndexed(it.content.values.toList()) { idx, line ->
                                 Text(
                                     text = line,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.padding(vertical = 4.dp)
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .alpha(
+                                            if (idx == highlightedLyricLine)
+                                                1f else 0.5f
+                                        ),
+                                    color = if (idx <= highlightedLyricLine)
+                                        Color.White else Color.Black,
                                 )
                             }
                         }
