@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,6 +36,7 @@ import dev.keego.musicplayer.stuff.progressAsState
 import dev.keego.musicplayer.stuff.progressMsAsState
 import dev.keego.musicplayer.ui.UiState
 import dev.keego.musicplayer.ui.lyric.browse_lyrics_
+import kotlinx.coroutines.delay
 
 @UnstableApi
 @Composable
@@ -150,9 +152,12 @@ private fun _lyric(
     }
 
     val progress by player.progressMsAsState()
+    val lyricScrollState = rememberLazyListState()
     var highlightedLyricLine by remember { mutableIntStateOf(0) }
     LaunchedEffect(progress) {
         highlightedLyricLine = lyricTimestamps?.indexOfLast { it <= progress } ?: 0
+        delay(100)
+        lyricScrollState.animateScrollToItem(if (highlightedLyricLine > 0) highlightedLyricLine - 1 else 0)
     }
 
     Column(
@@ -169,10 +174,9 @@ private fun _lyric(
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(250.dp)
                 .clip(Shapes.roundedCornerShape)
-                .background(MaterialTheme.colorScheme.primary)
-                .padding(8.dp),
+                .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center
         ) {
             when (lyricUiState) {
@@ -194,8 +198,10 @@ private fun _lyric(
                 UiState.SUCCESS -> {
                     lyric?.let {
                         LazyColumn(
-                            Modifier
-                                .fillMaxSize()
+                            Modifier.fillMaxSize(),
+                            userScrollEnabled = false,
+                            state = lyricScrollState,
+                            contentPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp)
                         ) {
                             itemsIndexed(it.content.values.toList()) { idx, line ->
                                 Text(
@@ -208,6 +214,7 @@ private fun _lyric(
                                         ),
                                     color = if (idx <= highlightedLyricLine)
                                         Color.White else Color.Black,
+                                    style = MaterialTheme.typography.titleLarge
                                 )
                             }
                         }

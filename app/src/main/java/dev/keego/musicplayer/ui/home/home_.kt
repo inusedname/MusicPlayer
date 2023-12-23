@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -96,7 +98,6 @@ fun home_(navigator: DestinationsNavigator) {
         Column(Modifier.padding(paddingValues)) {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(16.dp)
             ) {
                 items(songs) {
@@ -153,7 +154,7 @@ fun _dockedPlayer(
             .background(MaterialTheme.colorScheme.primary)
             .clickable(onClick = onClick)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             AsyncImage(
                 model = song.albumUri,
                 null,
@@ -166,8 +167,8 @@ fun _dockedPlayer(
                     .padding(start = 8.dp)
                     .weight(1f)
             ) {
-                Text(text = song.title, style = MaterialTheme.typography.titleSmall)
-                Text(text = song.artist)
+                Text(text = song.title, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                Text(text = song.artist, style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = onFavorite) {
                 Icon(
@@ -180,16 +181,19 @@ fun _dockedPlayer(
                 Icon(
                     if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     null,
+                    tint = Color.White
                 )
             }
         }
         LinearProgressIndicator(
             progress = progress,
             modifier = Modifier
+                .height(3.dp)
                 .fillMaxWidth()
                 .padding(start = 8.dp, end = 8.dp),
             trackColor = Color.White,
-            color = Color.Black
+            color = Color.Black,
+            strokeCap = StrokeCap.Round
         )
     }
 }
@@ -201,7 +205,7 @@ fun _song(song: Song, onClick: () -> Unit) {
             .fillMaxWidth()
             .clip(Shapes.roundedCornerShape)
             .clickable(onClick = onClick)
-            .padding(16.dp)
+            .padding(8.dp)
     ) {
         AsyncImage(
             model = song.albumUri,
