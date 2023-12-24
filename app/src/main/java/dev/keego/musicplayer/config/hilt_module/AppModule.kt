@@ -9,6 +9,9 @@ import dagger.hilt.components.SingletonComponent
 import dev.keego.musicplayer.local.AppDatabase
 import dev.keego.musicplayer.local.LocalLyricDao
 import dev.keego.musicplayer.remote.LyricRepository
+import dev.keego.musicplayer.remote.OnlineSongRepository
+import dev.keego.musicplayer.remote.freemp3download.DirectDownloadDao
+import dev.keego.musicplayer.remote.freemp3download.SearchSongDao
 import dev.keego.musicplayer.remote.lrclib.LrcLibLyricDao
 import javax.inject.Singleton
 
@@ -23,6 +26,15 @@ class AppModule {
         localDao: LocalLyricDao,
     ): LyricRepository {
         return LyricRepository(LrcLibLyricDao.build(context), localDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOnlineSongRepository(@ApplicationContext context: Context): OnlineSongRepository {
+        return OnlineSongRepository(
+            SearchSongDao.build(context),
+            DirectDownloadDao.build(context)
+        )
     }
 
     @Provides
