@@ -165,4 +165,5 @@ dependencies {
 
     implementation("org.jsoup:jsoup:1.17.1")
     implementation("com.google.guava:guava:33.0.0-android")
+    implementation 'com.github.acsbendi:Android-Request-Inspector-WebView:1.0.5'
 }

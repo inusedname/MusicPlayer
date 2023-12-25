@@ -8,9 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,7 +38,10 @@ import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.noti.PlaybackService
-import dev.keego.musicplayer.stuff.*
+import dev.keego.musicplayer.stuff.MediaPermission
+import dev.keego.musicplayer.stuff.copySampleAssetsToInternalStorage
+import dev.keego.musicplayer.stuff.playbackAsState
+import dev.keego.musicplayer.stuff.progressAsState
 import dev.keego.musicplayer.ui.player.PlayerVimel
 import dev.keego.musicplayer.ui.player.player_
 

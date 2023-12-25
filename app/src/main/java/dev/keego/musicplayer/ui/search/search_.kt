@@ -1,5 +1,6 @@
 package dev.keego.musicplayer.ui.search
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.ramcosta.composedestinations.annotation.Destination
 import dev.keego.musicplayer.config.theme.Shapes
+import dev.keego.musicplayer.pref.AppPreferences
 import dev.keego.musicplayer.ui.UiState
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -103,7 +105,11 @@ fun search_() {
                     items(results) {
                         _result_entry(it) {
                             selectedSongId = it.deezerId
-                            showDialogRequestAuth = true
+                            if (AppPreferences.directDownloadToken == null) {
+                                showDialogRequestAuth = true
+                                return@_result_entry
+                            }
+                            Toast.makeText(context, "TODO", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -146,6 +152,7 @@ fun search_() {
             firstTime = true, // TODO
             onDismiss = { showDialogRequestAuth = false }
         ) {
+            showDialogRequestAuth = false
             DirectDownloadAuthActivity.start(context, selectedSongId!!, query)
         }
     }

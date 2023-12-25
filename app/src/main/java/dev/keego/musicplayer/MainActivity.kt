@@ -2,6 +2,7 @@ package dev.keego.musicplayer
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.padding
@@ -12,7 +13,6 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -39,6 +39,10 @@ class MainActivity : ComponentActivity() {
                         navController = homeNavController
                     )
                 }
+
+                BackHandler {
+
+                }
             }
         }
     }
@@ -46,13 +50,16 @@ class MainActivity : ComponentActivity() {
     @OptIn(UnstableApi::class)
     private fun botNav(navController: NavController) = @Composable {
         var currentSelect by remember { mutableIntStateOf(0) }
-        NavigationBar(containerColor = Color.Transparent, contentColor = Color.White) {
+        NavigationBar {
             NavigationBarItem(
                 selected = currentSelect == 0,
                 onClick = {
                     currentSelect = 0
                     navController.navigate(home_Destination.route) {
                         launchSingleTop = true
+                        popUpTo(home_Destination.route) {
+                            inclusive = true
+                        }
                     }
                 },
                 icon = {
@@ -65,6 +72,9 @@ class MainActivity : ComponentActivity() {
                     currentSelect = 1
                     navController.navigate(search_Destination.route) {
                         launchSingleTop = true
+                        popUpTo(search_Destination.route) {
+                            inclusive = true
+                        }
                     }
                 },
                 icon = {
