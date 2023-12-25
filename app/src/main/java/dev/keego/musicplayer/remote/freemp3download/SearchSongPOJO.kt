@@ -4,7 +4,7 @@ data class SearchSongPOJO(
     val data: List<Data>,
 ) {
     data class Data(
-        val id: Int,
+        val id: String,
         val title: String,
         val preview: String,
         val artist: Artist,

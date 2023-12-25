@@ -34,6 +34,8 @@
             </intent-filter>
         </service>
 
+        <activity android:name=".ui.search.DirectDownloadAuthActivity" />
+
         <activity
             android:name=".TestActivity"
             android:exported="false"

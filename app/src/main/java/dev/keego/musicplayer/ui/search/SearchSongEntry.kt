@@ -3,7 +3,7 @@ package dev.keego.musicplayer.ui.search
 import dev.keego.musicplayer.remote.freemp3download.SearchSongPOJO
 
 data class SearchSongEntry(
-    val deezerId: Int,
+    val deezerId: String,
     val title: String,
     val artist: String,
     val cover: String,

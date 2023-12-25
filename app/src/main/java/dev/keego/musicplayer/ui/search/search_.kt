@@ -12,9 +12,13 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,14 +30,19 @@ import com.ramcosta.composedestinations.annotation.Destination
 import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.ui.UiState
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Destination
 @Composable
 fun search_() {
+    val context = LocalContext.current
+    val keyboard = LocalSoftwareKeyboardController.current
     var showDialogRequestAuth by remember { mutableStateOf(false) }
     val vimel = hiltViewModel<SearchVimel>()
     var query by remember { mutableStateOf("") }
     val resultUiState by vimel.uiState.collectAsStateWithLifecycle()
     val results by vimel.results.collectAsStateWithLifecycle()
+
+    var selectedSongId by remember { mutableStateOf<String?>(null) }
 
     Column {
         TextField(
@@ -46,12 +55,20 @@ fun search_() {
                 }
             },
             keyboardActions = KeyboardActions(onSearch = {
+                keyboard?.hide()
                 vimel.query(query)
             }),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             singleLine = true,
             shape = RoundedCornerShape(50),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            colors = TextFieldDefaults.colors(
+                disabledIndicatorColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
         )
 
         when (resultUiState) {
@@ -85,8 +102,8 @@ fun search_() {
                 ) {
                     items(results) {
                         _result_entry(it) {
+                            selectedSongId = it.deezerId
                             showDialogRequestAuth = true
-                            //TODO
                         }
                     }
                 }
@@ -127,8 +144,9 @@ fun search_() {
     if (showDialogRequestAuth) {
         _auth_required_dialog(
             firstTime = true, // TODO
-            onDismiss = { showDialogRequestAuth = false }) {
-            // TODO
+            onDismiss = { showDialogRequestAuth = false }
+        ) {
+            DirectDownloadAuthActivity.start(context, selectedSongId!!, query)
         }
     }
 }
@@ -164,6 +182,7 @@ private fun _auth_required_dialog(
 private fun _result_entry(entry: SearchSongEntry, onDownloadClick: () -> Unit) {
     Row(
         Modifier
+            .height(IntrinsicSize.Min)
             .fillMaxWidth()
             .clip(Shapes.roundedCornerShape)
             .padding(8.dp)
@@ -176,7 +195,7 @@ private fun _result_entry(entry: SearchSongEntry, onDownloadClick: () -> Unit) {
                 .fillMaxWidth(0.2f)
                 .aspectRatio(1f)
         )
-        Column(Modifier.padding(start = 24.dp)) {
+        Column(Modifier.padding(start = 24.dp).fillMaxHeight().weight(1f)) {
             Text(
                 text = entry.title,
                 style = MaterialTheme.typography.bodyLarge,

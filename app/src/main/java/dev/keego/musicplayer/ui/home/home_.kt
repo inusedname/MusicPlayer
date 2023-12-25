@@ -94,7 +94,7 @@ fun home_(navigator: DestinationsNavigator) {
             .request(activity)
     }
 
-    Scaffold(topBar = topBar(vimel::fetch), bottomBar = botNav(navigator)) { paddingValues ->
+    Scaffold(topBar = topBar(vimel::fetch)) { paddingValues ->
         Column(Modifier.padding(paddingValues)) {
             LazyColumn(
                 modifier = Modifier.weight(1f),
@@ -229,21 +229,6 @@ fun _song(song: Song, onClick: () -> Unit) {
                     .alpha(0.8f)
             )
         }
-    }
-}
-
-fun botNav(navigator: DestinationsNavigator) = @Composable {
-    var currentSelect by remember { mutableIntStateOf(0) }
-    NavigationBar(containerColor = Color.Transparent, contentColor = Color.White) {
-        NavigationBarItem(selected = currentSelect == 0, onClick = { currentSelect = 0 }, icon = {
-            Icon(Icons.Outlined.Home, null)
-        }, label = { Text(text = "Home") })
-        NavigationBarItem(selected = currentSelect == 1, onClick = { currentSelect = 1 }, icon = {
-            Icon(Icons.Outlined.Search, null)
-        }, label = { Text(text = "Search") })
-        NavigationBarItem(selected = currentSelect == 2, onClick = { currentSelect = 2 }, icon = {
-            Icon(Icons.Outlined.Folder, null)
-        }, label = { Text(text = "Library") })
     }
 }
 
