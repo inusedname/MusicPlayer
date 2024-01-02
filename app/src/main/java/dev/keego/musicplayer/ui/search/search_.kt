@@ -122,7 +122,7 @@ fun search_() {
                         .fillMaxWidth(), contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Error: ${(resultUiState as UiState.ERROR).exception}",
+                        text = "Error: ${(resultUiState as SearchUiState.ERROR).exception}",
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(16.dp)
                     )

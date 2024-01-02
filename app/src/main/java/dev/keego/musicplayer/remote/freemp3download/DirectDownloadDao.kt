@@ -1,8 +1,10 @@
 package dev.keego.musicplayer.remote.freemp3download
 
+import android.app.DownloadManager
 import android.content.Context
 import okhttp3.Cache
 import okhttp3.Request
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
@@ -11,7 +13,11 @@ import retrofit2.http.POST
 interface DirectDownloadDao {
 
     @POST("dl.php")
-    suspend fun directDownload(@Body directDownloadBody: DirectDownloadBody)
+    suspend fun directDownload(@Body directDownloadBody: DirectDownloadBody): Response<String>
+
+    fun startDownload(context: Context, url: String) {
+        val manager = (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager)
+    }
 
     companion object {
         fun build(context: Context): DirectDownloadDao {
