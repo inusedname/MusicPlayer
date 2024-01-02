@@ -22,17 +22,15 @@ import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.widget.Toast;
+
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
-import androidx.annotation.RequiresApi;
 import androidx.fragment.app.FragmentManager;
 import androidx.media3.common.C;
 import androidx.media3.common.DrmInitData;
 import androidx.media3.common.Format;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.TrackGroup;
-import androidx.media3.common.TrackSelectionParameters;
-import androidx.media3.common.Tracks;
 import androidx.media3.common.util.Log;
 import androidx.media3.common.util.Util;
 import androidx.media3.datasource.DataSource;
@@ -50,10 +48,12 @@ import androidx.media3.exoplayer.offline.DownloadRequest;
 import androidx.media3.exoplayer.offline.DownloadService;
 import androidx.media3.exoplayer.source.TrackGroupArray;
 import androidx.media3.exoplayer.trackselection.MappingTrackSelector.MappedTrackInfo;
+
 import java.io.IOException;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -77,6 +77,8 @@ public class DownloadCenter {
   private final DataSource.Factory dataSourceFactory;
   private final CopyOnWriteArraySet<Listener> listeners;
   private final HashMap<Uri, Download> downloads;
+
+  private final List<Uri> todoDownloads;
   private final DownloadIndex downloadIndex;
 
   @Nullable private StartDownloadDialogHelper startDownloadDialogHelper;
@@ -91,6 +93,7 @@ public class DownloadCenter {
     this.dataSourceFactory = dataSourceFactory;
     listeners = new CopyOnWriteArraySet<>();
     downloads = new HashMap<>();
+    todoDownloads = new ArrayList<>();
     downloadIndex = downloadManager.getDownloadIndex();
     downloadManager.addListener(new DownloadManagerListener());
     loadDownloads();

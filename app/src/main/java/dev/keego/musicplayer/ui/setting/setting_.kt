@@ -2,6 +2,7 @@ package dev.keego.musicplayer.ui.setting
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -11,7 +12,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,6 +33,7 @@ fun setting_() {
             Modifier
                 .padding(it)
                 .verticalScroll(rememberScrollState())
+                .padding(8.dp)
         ) {
             _download {
 
@@ -53,25 +54,31 @@ fun _download(onClick: () -> Unit) {
     }
     val overallProgress = 0.5f
 
-    Card(modifier = Modifier.padding(8.dp), onClick = onClick) {
-        Text(text = "Downloads")
-        when {
-            downloads.isEmpty() -> {
-                Text(text = "No downloads in queue 🎉~")
-                Text(text = "Song downloaded: $songDownloaded")
-            }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+        , onClick = onClick
+    ) {
+        Column(Modifier.padding(8.dp)) {
+            Text(text = "Downloads", style = MaterialTheme.typography.titleMedium)
+            when {
+                downloads.isEmpty() -> {
+                    Text(text = "No downloads in queue 🎉~", style = MaterialTheme.typography.headlineSmall)
+                    Text(text = "Song downloaded: $songDownloaded")
+                }
 
-            else -> {
-                Text(text = "Downloading: ${downloads[0]}")
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "${overallProgress * 100}%",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                    LinearProgressIndicator(
-                        progress = overallProgress,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
+                else -> {
+                    Text(text = "Downloading: ${downloads[0]}")
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "${overallProgress * 100}%",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        LinearProgressIndicator(
+                            progress = overallProgress,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                 }
             }
         }

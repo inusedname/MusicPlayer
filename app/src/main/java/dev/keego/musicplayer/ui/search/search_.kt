@@ -1,6 +1,5 @@
 package dev.keego.musicplayer.ui.search
 
-import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,19 +23,20 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.ramcosta.composedestinations.annotation.Destination
 import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.pref.AppPreferences
-import dev.keego.musicplayer.ui.UiState
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Destination
 @Composable
 fun search_() {
     val context = LocalContext.current
+    val fragmentActivity = LocalContext.current as FragmentActivity
     val keyboard = LocalSoftwareKeyboardController.current
     var showDialogRequestAuth by remember { mutableStateOf(false) }
     val vimel = hiltViewModel<SearchVimel>()
@@ -109,7 +109,10 @@ fun search_() {
                                 showDialogRequestAuth = true
                                 return@_result_entry
                             }
-                            Toast.makeText(context, "TODO", Toast.LENGTH_SHORT).show()
+                            vimel.postDownload(
+                                fragmentActivity.supportFragmentManager,
+                                it.deezerId.toInt()
+                            )
                         }
                     }
                 }
@@ -202,7 +205,12 @@ private fun _result_entry(entry: SearchSongEntry, onDownloadClick: () -> Unit) {
                 .fillMaxWidth(0.2f)
                 .aspectRatio(1f)
         )
-        Column(Modifier.padding(start = 24.dp).fillMaxHeight().weight(1f)) {
+        Column(
+            Modifier
+                .padding(start = 24.dp)
+                .fillMaxHeight()
+                .weight(1f)
+        ) {
             Text(
                 text = entry.title,
                 style = MaterialTheme.typography.bodyLarge,

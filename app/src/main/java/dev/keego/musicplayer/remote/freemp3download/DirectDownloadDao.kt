@@ -15,10 +15,6 @@ interface DirectDownloadDao {
     @POST("dl.php")
     suspend fun directDownload(@Body directDownloadBody: DirectDownloadBody): Response<String>
 
-    fun startDownload(context: Context, url: String) {
-        val manager = (context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager)
-    }
-
     companion object {
         fun build(context: Context): DirectDownloadDao {
             val cacheDir = context.cacheDir
