@@ -35,7 +35,7 @@ android {
             firebaseAppDistribution {
                 artifactType = "APK"
                 groups = "standard"
-                serviceCredentialsFile = file("/firebase-app-distribution.json")
+//                serviceCredentialsFile = file("/firebase-app-distribution.json")
             }
             task publishDebug {
                 dependsOn 'assembleDebug'
