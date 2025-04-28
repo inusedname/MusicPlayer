@@ -67,7 +67,7 @@ object MediaQuery {
             String::class -> getString(getColumnIndexOrThrow(columnName))
             Long::class -> getLong(getColumnIndexOrThrow(columnName))
             Int::class -> getInt(getColumnIndexOrThrow(columnName))
-            else -> throw IllegalStateException("Type not available: ${T::class}")
+            else -> {}
         } as T
     }
 }
