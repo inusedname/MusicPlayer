@@ -9,10 +9,9 @@ import dagger.hilt.components.SingletonComponent
 import dev.keego.musicplayer.local.AppDatabase
 import dev.keego.musicplayer.local.LocalLyricDao
 import dev.keego.musicplayer.remote.LyricRepository
-import dev.keego.musicplayer.remote.OnlineSongRepository
-import dev.keego.musicplayer.remote.freemp3download.DirectDownloadDao
-import dev.keego.musicplayer.remote.freemp3download.SearchSongDao
 import dev.keego.musicplayer.remote.lrclib.LrcLibLyricDao
+import dev.keego.musicplayer.remote.search.OnlineSongRepository
+import dev.keego.musicplayer.remote.youtube.YoutubeExtractor
 import javax.inject.Singleton
 
 @InstallIn(SingletonComponent::class)
@@ -30,11 +29,8 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideOnlineSongRepository(@ApplicationContext context: Context): OnlineSongRepository {
-        return OnlineSongRepository(
-            SearchSongDao.build(context),
-            DirectDownloadDao.build(context)
-        )
+    fun provideOnlineSongRepository(youtubeExtractor: YoutubeExtractor): OnlineSongRepository {
+        return OnlineSongRepository(youtubeExtractor)
     }
 
     @Provides
@@ -48,4 +44,8 @@ class AppModule {
     fun provideLocalLyricDao(database: AppDatabase): LocalLyricDao {
         return database.lyricDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideYoutubeExtractor() = YoutubeExtractor()
 }

@@ -17,7 +17,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.offline.Download
-import com.ramcosta.composedestinations.annotation.Destination
 
 /**
  * TODO: Nghiệp vụ:
@@ -25,7 +24,6 @@ import com.ramcosta.composedestinations.annotation.Destination
  * - Ở setting: show downloaded + pause download, stop các thứ
  */
 @UnstableApi
-@Destination
 @Composable
 fun setting_() {
     Scaffold {

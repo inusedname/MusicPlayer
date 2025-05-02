@@ -41,7 +41,7 @@ import kotlinx.coroutines.delay
 @UnstableApi
 @Composable
 fun player_(
-    playerVimel: PlayerVimel,
+    lyricViewModel: LyricViewModel,
     song: Song,
     player: Player,
     favorite: Boolean,
@@ -56,7 +56,7 @@ fun player_(
         CompositionLocalProvider(LocalContentColor provides Color.White) {
             _player_content(
                 modifier = Modifier.background(MaterialTheme.colorScheme.background),
-                playerVimel = playerVimel,
+                lyricViewModel = lyricViewModel,
                 song = song,
                 player = player,
                 favorite = favorite,
@@ -78,7 +78,7 @@ fun player_(
 @Composable
 private fun _player_content(
     modifier: Modifier = Modifier,
-    playerVimel: PlayerVimel,
+    lyricViewModel: LyricViewModel,
     song: Song,
     player: Player,
     favorite: Boolean,
@@ -129,7 +129,7 @@ private fun _player_content(
                 }
                 _controller(modifier = Modifier.padding(top = 8.dp), player = player)
             }
-            _lyric(player, playerVimel, showBrowseLyrics)
+            _lyric(player, lyricViewModel, showBrowseLyrics)
             Spacer(modifier = Modifier.height(100.dp))
         }
     }
@@ -138,11 +138,11 @@ private fun _player_content(
 @Composable
 private fun _lyric(
     player: Player,
-    playerVimel: PlayerVimel,
+    lyricViewModel: LyricViewModel,
     showBrowseLyrics: () -> Unit,
 ) {
-    val lyricUiState by playerVimel.lyricUiState.collectAsStateWithLifecycle()
-    val lyric by playerVimel.lyric.collectAsStateWithLifecycle()
+    val lyricUiState by lyricViewModel.lyricUiState.collectAsStateWithLifecycle()
+    val lyric by lyricViewModel.lyric.collectAsStateWithLifecycle()
     val lyricTimestamps = remember(lyricUiState) {
         if (lyricUiState == UiState.SUCCESS) {
             lyric!!.content.keys.toList()

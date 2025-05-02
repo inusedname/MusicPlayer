@@ -38,6 +38,7 @@ class HomeVimel @Inject constructor(
             }
             val siu = MediaQuery.querySongs(context)
             songs.updateTo { siu }
+            songs.value = siu
         }
     }
 }

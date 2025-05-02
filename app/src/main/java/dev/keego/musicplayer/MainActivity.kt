@@ -1,102 +1,161 @@
 package dev.keego.musicplayer
 
+import android.content.ComponentName
 import android.os.Bundle
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
-import androidx.navigation.NavController
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.ramcosta.composedestinations.DestinationsNavHost
 import dagger.hilt.android.AndroidEntryPoint
 import dev.keego.musicplayer.config.theme.MusicPlayerTheme
-import dev.keego.musicplayer.ui.NavGraphs
-import dev.keego.musicplayer.ui.destinations.home_Destination
-import dev.keego.musicplayer.ui.destinations.search_Destination
-import dev.keego.musicplayer.ui.destinations.setting_Destination
+import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.noti.PlaybackService
+import dev.keego.musicplayer.ui.PlayerVMEvent
+import dev.keego.musicplayer.ui.PlayerViewModel
+import dev.keego.musicplayer.ui.home.AppBottomNavigation
+import dev.keego.musicplayer.ui.home.HomeScreen
+import dev.keego.musicplayer.ui.home._dockedPlayer
+import dev.keego.musicplayer.ui.player.LyricViewModel
+import dev.keego.musicplayer.ui.player.player_
+import dev.keego.musicplayer.ui.search.SearchScreen
+import dev.keego.musicplayer.ui.setting.setting_
+import kotlinx.coroutines.launch
+
+sealed class Route {
+    object Home : Route()
+    object Search : Route()
+    object Library : Route()
+}
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+    @OptIn(UnstableApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContent {
             MusicPlayerTheme {
                 val homeNavController = rememberNavController()
+                val lyricViewModel = hiltViewModel<LyricViewModel>()
+                val scope = rememberCoroutineScope()
+                val shareViewModel = viewModel<PlayerViewModel>()
+                val lifecycleOwner = LocalLifecycleOwner.current
+                val player = remember {
+                    val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+                    MediaController.Builder(this, token).buildAsync()
+                }
+                var song by remember { mutableStateOf<Song?>(null) }
+                var isFavorite by remember { mutableStateOf(false) }
+                var showFullScreenPlayer by remember { mutableStateOf(false) }
 
-                Scaffold(bottomBar = botNav(homeNavController)) {
-                    DestinationsNavHost(
-                        modifier = Modifier.padding(it),
-                        navGraph = NavGraphs.root,
-                        navController = homeNavController
-                    )
+                LaunchedEffect(Unit) {
+                    scope.launch {
+                        shareViewModel.event.collect { event ->
+                            when (event) {
+                                is PlayerVMEvent.PlayImmediate -> {
+                                    (event.streamable as? Song)?.let {
+                                        song = it
+                                        lyricViewModel.queryLyric(it)
+                                    }
+                                    player.get().setMediaItem(
+                                        MediaItem.Builder().setMimeType(event.streamable.getMimeType())
+                                            .setUri(
+                                                event.streamable.getStreamUri()
+                                            ).build()
+                                    )
+                                    player.get().prepare()
+                                    player.get().play()
+                                }
+                            }
+                        }
+                    }
                 }
 
-                BackHandler {
+                DisposableEffect(lifecycleOwner) {
+                    val lifecycleEventObserver = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_STOP -> player.get().pause()
+                            Lifecycle.Event.ON_DESTROY -> player.get().release()
+                            else -> Unit
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(lifecycleEventObserver)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(lifecycleEventObserver)
+                    }
+                }
 
+                Scaffold(
+                    bottomBar = AppBottomNavigation(homeNavController)
+                ) { paddingValues ->
+                    Box(Modifier.fillMaxSize()) {
+                        NavHost(
+                            modifier = Modifier.padding(paddingValues),
+                            startDestination = Route.Home::class,
+                            navController = homeNavController
+                        ) {
+                            composable<Route.Home> {
+                                HomeScreen(homeNavController, shareViewModel)
+                            }
+                            composable<Route.Search>() {
+                                SearchScreen()
+                            }
+                            composable<Route.Library>() {
+                                setting_()
+                            }
+                        }
+
+                        song?.let {
+                            _dockedPlayer(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(12.dp),
+                                player = player.get(),
+                                song = it,
+                                favorite = isFavorite,
+                                onFavorite = { isFavorite = !isFavorite },
+                                onClick = { showFullScreenPlayer = true }
+                            )
+                        }
+                    }
+                    if (showFullScreenPlayer && song != null) {
+                        player_(
+                            lyricViewModel = lyricViewModel,
+                            song = song!!,
+                            player = player.get(),
+                            favorite = isFavorite,
+                            favoriteClick = { isFavorite = !isFavorite }
+                        ) {
+                            showFullScreenPlayer = false
+                        }
+                    }
                 }
             }
-        }
-    }
-
-    @OptIn(UnstableApi::class)
-    private fun botNav(navController: NavController) = @Composable {
-        var currentSelect by remember { mutableIntStateOf(0) }
-        NavigationBar {
-            NavigationBarItem(
-                selected = currentSelect == 0,
-                onClick = {
-                    currentSelect = 0
-                    navController.navigate(home_Destination.route) {
-                        launchSingleTop = true
-                        popUpTo(home_Destination.route) {
-                            inclusive = true
-                        }
-                    }
-                },
-                icon = {
-                    Icon(Icons.Outlined.Home, null)
-                },
-                label = { Text(text = "Home") })
-            NavigationBarItem(
-                selected = currentSelect == 1,
-                onClick = {
-                    currentSelect = 1
-                    navController.navigate(search_Destination.route) {
-                        launchSingleTop = true
-                        popUpTo(search_Destination.route) {
-                            inclusive = true
-                        }
-                    }
-                },
-                icon = {
-                    Icon(Icons.Outlined.Search, null)
-                },
-                label = { Text(text = "Search") })
-            NavigationBarItem(
-                selected = currentSelect == 2,
-                onClick = {
-                    currentSelect = 2
-                    navController.navigate(setting_Destination.route) {
-                        launchSingleTop = true
-                        popUpTo(setting_Destination.route) {
-                            inclusive = true
-                        }
-                    }
-                },
-                icon = {
-                    Icon(Icons.Outlined.Folder, null)
-                },
-                label = { Text(text = "Library") })
         }
     }
 }
