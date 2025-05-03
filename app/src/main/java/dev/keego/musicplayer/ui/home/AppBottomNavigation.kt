@@ -11,52 +11,46 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.compose.currentBackStackEntryAsState
 import dev.keego.musicplayer.Route
+import kotlin.reflect.KClass
 
 @OptIn(UnstableApi::class)
 fun AppBottomNavigation(navController: NavController) = @Composable {
-    var currentSelect by remember { mutableIntStateOf(0) }
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currDestination = currentBackStackEntry?.destination
+
+    fun NavDestination?.match(route: KClass<*>) = this?.hierarchy?.any { it.hasRoute(route)} ?: false
+
+    data class TopRoute(val title: String, val route: Route, val icon: ImageVector)
+
+    val routes = listOf(
+        TopRoute("Home", Route.Home, Icons.Outlined.Home),
+        TopRoute("Search", Route.Search, Icons.Outlined.Search),
+        TopRoute("Library", Route.Library, Icons.Outlined.Folder)
+    )
+
     NavigationBar {
-        NavigationBarItem(
-            selected = currentSelect == 0,
-            onClick = {
-                currentSelect = 0
-                navController.navigate(Route.Home) {
-                    launchSingleTop = true
-                }
-            },
-            icon = {
-                Icon(Icons.Outlined.Home, null)
-            },
-            label = { Text(text = "Home") })
-        NavigationBarItem(
-            selected = currentSelect == 1,
-            onClick = {
-                currentSelect = 1
-                navController.navigate(Route.Search) {
-                    launchSingleTop = true
-                }
-            },
-            icon = {
-                Icon(Icons.Outlined.Search, null)
-            },
-            label = { Text(text = "Search") })
-        NavigationBarItem(
-            selected = currentSelect == 2,
-            onClick = {
-                currentSelect = 2
-                navController.navigate(Route.Library) {
-                    launchSingleTop = true
-                }
-            },
-            icon = {
-                Icon(Icons.Outlined.Folder, null)
-            },
-            label = { Text(text = "Library") })
+        routes.map {
+            NavigationBarItem(
+                selected = currDestination.match(it.route::class),
+                onClick = {
+                    navController.navigate(it.route) {
+                        launchSingleTop = true
+                        popUpTo(Route.Home)
+                    }
+                },
+                icon = {
+                    Icon(it.icon, null)
+                },
+                label = { Text(text = it.title) }
+            )
+        }
     }
 }

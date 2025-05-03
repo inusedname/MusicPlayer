@@ -35,10 +35,10 @@ class HomeVimel @Inject constructor(
                 context, arrayOf(externalStorage.absolutePath), arrayOf("audio/*")
             ) { path, _ ->
                 Timber.d("Scanned $path:")
+                val siu = MediaQuery.querySongs(context)
+                songs.updateTo { siu }
+                songs.value = siu
             }
-            val siu = MediaQuery.querySongs(context)
-            songs.updateTo { siu }
-            songs.value = siu
         }
     }
 }

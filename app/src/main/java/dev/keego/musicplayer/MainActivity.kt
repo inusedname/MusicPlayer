@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.DisposableEffect
@@ -45,10 +47,18 @@ import dev.keego.musicplayer.ui.player.player_
 import dev.keego.musicplayer.ui.search.SearchScreen
 import dev.keego.musicplayer.ui.setting.setting_
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import timber.log.Timber
 
 sealed class Route {
+
+    @Serializable
     object Home : Route()
+
+    @Serializable
     object Search : Route()
+
+    @Serializable
     object Library : Route()
 }
 
@@ -80,6 +90,7 @@ class MainActivity : FragmentActivity() {
                                 is PlayerVMEvent.PlayImmediate -> {
                                     (event.streamable as? Song)?.let {
                                         song = it
+                                        Timber.d("song: $it")
                                         lyricViewModel.queryLyric(it)
                                     }
                                     player.get().setMediaItem(
@@ -113,9 +124,9 @@ class MainActivity : FragmentActivity() {
                 Scaffold(
                     bottomBar = AppBottomNavigation(homeNavController)
                 ) { paddingValues ->
-                    Box(Modifier.fillMaxSize()) {
+                    Box(Modifier.padding(paddingValues).fillMaxSize()) {
                         NavHost(
-                            modifier = Modifier.padding(paddingValues),
+                            modifier = Modifier,
                             startDestination = Route.Home::class,
                             navController = homeNavController
                         ) {
@@ -134,6 +145,8 @@ class MainActivity : FragmentActivity() {
                             _dockedPlayer(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .height(100.dp)
                                     .padding(12.dp),
                                 player = player.get(),
                                 song = it,

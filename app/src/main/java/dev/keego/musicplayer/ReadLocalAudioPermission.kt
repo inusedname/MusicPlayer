@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun readLocalAudioPermissionLauncher(): Launcher<Unit> {
+fun readLocalAudioPermissionLauncher(onGranted: () -> Unit): Launcher<Unit> {
     val context = LocalContext.current
     return basePermissionLauncher(
         permissions = if (Build.VERSION.SDK_INT <= 32) {
@@ -15,7 +15,7 @@ fun readLocalAudioPermissionLauncher(): Launcher<Unit> {
         } else {
             listOf(android.Manifest.permission.READ_MEDIA_AUDIO)
         },
-        onSuccess = {},
+        onSuccess = { onGranted() },
         getTryAgainSettingIntent = {
             return@basePermissionLauncher Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).setPackage(
                 context.packageName
