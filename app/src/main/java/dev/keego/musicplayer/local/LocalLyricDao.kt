@@ -5,8 +5,8 @@ import androidx.room.*
 @Dao
 interface LocalLyricDao {
 
-    @Query("SELECT * FROM lyric WHERE mediaStoreId = :mediaStoreId")
-    suspend fun get(mediaStoreId: Int): Lyric?
+    @Query("SELECT * FROM lyric WHERE id = :id")
+    suspend fun get(id: String): Lyric?
 
     @Upsert
     suspend fun save(lyric: Lyric)

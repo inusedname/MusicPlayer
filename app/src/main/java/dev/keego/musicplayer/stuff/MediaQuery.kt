@@ -39,14 +39,14 @@ object MediaQuery {
 
                 allMusics.add(
                     Song(
-                        mediaStoreId = id,
+                        id = id.toString(),
                         album = albumTitle,
                         title = title,
                         artist = artist,
                         dateAdded = date,
                         duration = duration,
                         data = uri,
-                        albumUri = ContentUris.withAppendedId(
+                        thumbnailUri = ContentUris.withAppendedId(
                             Uri.parse("content://media/external/audio/albumart"),
                             albumId
                         ).toString()

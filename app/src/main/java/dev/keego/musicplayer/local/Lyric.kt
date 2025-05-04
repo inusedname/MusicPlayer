@@ -7,7 +7,7 @@ import dev.keego.musicplayer.model.Song
 @Entity
 data class Lyric(
     @PrimaryKey(autoGenerate = false)
-    val mediaStoreId: Int,
+    val id: String,
     val lrcLibId: Int,
     val query: String,
     val lrcContent: String,

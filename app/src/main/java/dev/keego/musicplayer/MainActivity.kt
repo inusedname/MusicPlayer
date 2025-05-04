@@ -134,7 +134,7 @@ class MainActivity : FragmentActivity() {
                                 HomeScreen(homeNavController, shareViewModel)
                             }
                             composable<Route.Search>() {
-                                SearchScreen()
+                                SearchScreen(shareViewModel)
                             }
                             composable<Route.Library>() {
                                 setting_()
@@ -170,5 +170,9 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    companion object {
+        const val DEBUG = true
     }
 }

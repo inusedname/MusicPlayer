@@ -14,7 +14,7 @@ class LyricRepository(
     private val localDao: LocalLyricDao,
 ) {
     suspend fun getBestMatch(song: Song): Response<Lyric> {
-        val local: Lyric? = localDao.get(song.mediaStoreId)
+        val local: Lyric? = localDao.get(song.id)
         if (local != null) {
             return Response.success(local)
         }
@@ -27,7 +27,7 @@ class LyricRepository(
         if (response.isSuccessful) {
             val body = response.body()!!
             val remote = Lyric(
-                mediaStoreId = song.mediaStoreId,
+                id = song.id,
                 lrcLibId = body.id,
                 query = Lyric.getQuery(song),
                 lrcContent = body.syncedLyrics
@@ -35,7 +35,7 @@ class LyricRepository(
             localDao.save(remote)
             return Response.success(remote)
         } else {
-            Timber.e(response.message())
+            Timber.e(response.errorBody()?.string() ?: "null")
             return Response.error(
                 response.code(),
                 response.errorBody() ?: "undefined".toResponseBody(null)

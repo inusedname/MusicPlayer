@@ -11,7 +11,7 @@ data class LrcLyric(
     companion object {
         private fun fromText(raw: String): LrcLyric {
             val mutableMap = mutableMapOf<Int, String>()
-            val pattern = "\\[(\\d\\d):(\\d\\d)\\.(\\d\\d)\\](.+)"
+            val pattern = "\\[(\\d\\d):(\\d\\d)\\.(\\d\\d)\\]\\s(.+)"
             val matcher = Regex(pattern)
             matcher.findAll(raw).forEach {
                 mutableMap[

@@ -100,8 +100,8 @@ private fun _player_content(
                 Icon(imageVector = Icons.Outlined.Close, contentDescription = null)
             }
             AsyncImage(
-                song.albumUri, null, modifier = Modifier
-                    .clip(Shapes.roundedCornerShape)
+                song.thumbnailUri, null, modifier = Modifier
+                    .clip(MaterialTheme.shapes.medium)
                     .fillMaxWidth()
                     .aspectRatio(1f)
             )
@@ -175,7 +175,7 @@ private fun _lyric(
             Modifier
                 .fillMaxWidth()
                 .height(250.dp)
-                .clip(Shapes.roundedCornerShape)
+                .clip(MaterialTheme.shapes.medium)
                 .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center
         ) {
@@ -234,7 +234,7 @@ private fun _lyric(
         Row(
             Modifier
                 .padding(top = 8.dp)
-                .clip(Shapes.roundedCornerShape)
+                .clip(MaterialTheme.shapes.medium)
                 .clickable(onClick = showBrowseLyrics)
                 .padding(vertical = 6.dp, horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically

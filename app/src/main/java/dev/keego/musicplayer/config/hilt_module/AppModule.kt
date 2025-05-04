@@ -12,6 +12,7 @@ import dev.keego.musicplayer.remote.LyricRepository
 import dev.keego.musicplayer.remote.lrclib.LrcLibLyricDao
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
 import dev.keego.musicplayer.remote.youtube.YoutubeExtractor
+import okhttp3.OkHttpClient
 import javax.inject.Singleton
 
 @InstallIn(SingletonComponent::class)
@@ -47,5 +48,12 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideYoutubeExtractor() = YoutubeExtractor()
+    fun provideYoutubeExtractor(okHttpClient: OkHttpClient) = YoutubeExtractor(okHttpClient)
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .build()
+    }
 }

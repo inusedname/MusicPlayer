@@ -27,10 +27,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,14 +48,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import dev.keego.musicplayer.config.theme.Shapes
+import dev.keego.musicplayer.remote.Streamable
+import dev.keego.musicplayer.ui.PlayerViewModel
 
 @Composable
-fun SearchScreen() {
+fun SearchScreen(playerViewModel: PlayerViewModel) {
     val context = LocalContext.current
     val keyboard = LocalSoftwareKeyboardController.current
 
     val viewModel = hiltViewModel<SearchVimel>()
     val resultUiState by viewModel.state.collectAsState()
+    val scope = rememberCoroutineScope()
 
     var query by remember { mutableStateOf("") }
 
@@ -84,8 +89,17 @@ fun SearchScreen() {
             )
         )
 
-        when (val state = resultUiState) {
-            SearchUiState.LOADING -> {
+        LaunchedEffect(Unit) {
+            viewModel.state.collect {
+                if (it.fetchingState is UiState.Success) {
+                    playerViewModel.playImmediate(it.fetchingState.value, false)
+                    viewModel.markAsPlayed()
+                }
+            }
+        }
+
+        when (val state = resultUiState.searchState) {
+            is UiState.Loading -> {
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -106,36 +120,37 @@ fun SearchScreen() {
                 }
             }
 
-            is SearchUiState.SUCCESS -> {
+            is UiState.Success -> {
                 LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(top = 8.dp),
-                    contentPadding = PaddingValues(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(state.result) {
-                        _result_entry(it) {
-
-                        }
+                    items(state.value) { entry ->
+                        _result_entry(
+                            entry = entry,
+                            showLoading = resultUiState.fetchingState is UiState.Loading && (resultUiState.fetchingState as UiState.Loading<Streamable>).id == entry.detail.url,
+                            onItemClick = {
+                                viewModel.getStreamable(entry)
+                            }
+                        )
                     }
                 }
             }
 
-            is SearchUiState.ERROR -> {
+            is UiState.Error -> {
                 Box(
                     Modifier
                         .weight(1f)
                         .fillMaxWidth(), contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Error: ${state.throwable.message}",
+                        text = "Error: ${state.exception.message}",
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(16.dp)
                     )
                 }
             }
 
-            SearchUiState.IDLE -> {
+            is UiState.Idle -> {
                 Column(
                     Modifier
                         .weight(1f)
@@ -155,12 +170,16 @@ fun SearchScreen() {
 }
 
 @Composable
-private fun _result_entry(entry: SearchEntry, onItemClick: () -> Unit) {
+private fun _result_entry(
+    entry: SearchEntry,
+    showLoading: Boolean,
+    onItemClick: () -> Unit
+) {
     Row(
         Modifier
             .height(IntrinsicSize.Min)
             .fillMaxWidth()
-            .clip(Shapes.roundedCornerShape)
+            .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onItemClick)
             .padding(8.dp)
     ) {
@@ -168,7 +187,7 @@ private fun _result_entry(entry: SearchEntry, onItemClick: () -> Unit) {
             model = entry.detail.thumbnails.firstOrNull()?.url,
             contentDescription = null,
             modifier = Modifier
-                .clip(Shapes.roundedCornerShape)
+                .clip(MaterialTheme.shapes.medium)
                 .fillMaxWidth(0.2f)
                 .aspectRatio(1f)
         )
@@ -189,6 +208,14 @@ private fun _result_entry(entry: SearchEntry, onItemClick: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier
                     .alpha(0.8f)
+            )
+        }
+        if (showLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(start = 8.dp)
+                    .align(Alignment.CenterVertically)
             )
         }
     }

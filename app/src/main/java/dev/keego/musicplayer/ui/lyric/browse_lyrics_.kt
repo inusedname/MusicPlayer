@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -134,7 +133,6 @@ private fun _browse_lyrics_content(
 private fun _result(result: BestMatchResultPOJO, selected: Boolean, onClick: () -> Unit) {
     Card(
         onClick = onClick,
-        shape = Shapes.roundedCornerShape,
         border = if (selected) BorderStroke(2.dp, Color.White) else null,
     ) {
         Column(

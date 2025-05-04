@@ -5,13 +5,13 @@ import androidx.core.net.toUri
 import dev.keego.musicplayer.remote.Streamable
 
 data class Song(
-    val mediaStoreId: Int,
+    val id: String,
     val album: String,
     val title: String,
     val duration: Long,
     val artist: String,
     val dateAdded: String,
-    val albumUri: String,
+    val thumbnailUri: String?,
     val data: String,
 ): Streamable {
     override fun getMimeType(): String {

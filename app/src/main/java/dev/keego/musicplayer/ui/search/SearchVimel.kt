@@ -1,25 +1,14 @@
 package dev.keego.musicplayer.ui.search
 
 import android.content.Context
-import android.os.Looper
-import android.widget.Toast
-import androidx.fragment.app.FragmentManager
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.util.UnstableApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.keego.musicplayer.BaseViewModel
 import dev.keego.musicplayer.noti.DemoUtil
 import dev.keego.musicplayer.noti.DownloadCenter
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.jsoup.Connection.Base
 import timber.log.Timber
 import java.lang.ref.WeakReference
 import javax.inject.Inject
@@ -29,21 +18,39 @@ class SearchVimel @Inject constructor(
     private val repo: OnlineSongRepository,
     @ApplicationContext private val context: Context,
 ): BaseViewModel<SearchUiState, Unit>() {
-    override fun initialState(): SearchUiState = SearchUiState.IDLE
+    override fun initialState(): SearchUiState = SearchUiState()
 
     private val downloadCenter: WeakReference<DownloadCenter> =
         WeakReference(DemoUtil.getDownloadCenter(context))
 
     fun query(query: String) {
         viewModelScope.launch {
-            setState(SearchUiState.LOADING)
+            setState { it.copy(searchState = UiState.Loading())}
             repo.search(query)
-                .onSuccess {
-                    setState(SearchUiState.SUCCESS(it.map { SearchEntry(it) }))
-                }.onFailure {
-                    setState(SearchUiState.ERROR(it))
+                .onSuccess { items ->
+                    setState { it.copy(searchState = UiState.Success(items.map { SearchEntry(it) }))}
+                }.onFailure { throwable ->
+                    Timber.e(throwable)
+                    setState { it.copy(searchState = UiState.Error(throwable))}
                 }
         }
+    }
+
+    fun getStreamable(entry: SearchEntry) {
+        viewModelScope.launch {
+            setState { it.copy(fetchingState = UiState.Loading(entry.detail.url))}
+            repo.getYoutubeStream(entry.detail)
+                .onSuccess { streamable ->
+                    setState { it.copy(fetchingState = UiState.Success(streamable))}
+                }.onFailure { throwable ->
+                    Timber.e(throwable)
+                    setState { it.copy(fetchingState = UiState.Error(throwable))}
+                }
+        }
+    }
+
+    fun markAsPlayed() {
+        setState { it.copy(fetchingState = UiState.Idle())}
     }
 
 //    private val renderersFactory = DemoUtil.buildRenderersFactory(context, false)

@@ -1,22 +1,27 @@
 package dev.keego.musicplayer.remote.youtube
 
-import android.net.Uri
+import dev.keego.musicplayer.model.Song
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import org.schabi.newpipe.extractor.InfoItem
+import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService
+import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.Stream
+import org.schabi.newpipe.extractor.stream.StreamExtractor
 import org.schabi.newpipe.extractor.stream.VideoStream
 import timber.log.Timber
-import androidx.core.net.toUri
-import dev.keego.musicplayer.remote.Streamable
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.schabi.newpipe.extractor.InfoItem
-import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 
 
-class YoutubeExtractor {
-    val service = YoutubeService(1)
+class YoutubeExtractor(okHttpClient: OkHttpClient) {
+    private val service = YoutubeService(1)
+
+    init {
+        NewPipe.init(DownloaderImpl.init(okHttpClient.newBuilder()))
+    }
 
     suspend fun getSearchSuggestions(query: String): List<String> = withContext(Dispatchers.IO) {
         val suggestionExtractor = service.suggestionExtractor
@@ -32,22 +37,40 @@ class YoutubeExtractor {
         }
     }
 
-    fun getYoutubeStream(url: String): Streamable {
-        val streams = service.getStreamExtractor(url).audioStreams.toList()
-        Timber.d(streams.joinToString { "it.url=${it.isUrl}, ${it.content}\n" })
-        return streams.find { it.isUrl }
-            ?.let {
-                val mimeType = getMimeType(it)
-                object : Streamable {
-                    override fun getStreamUri(): Uri {
-                        return it.content.toUri()
-                    }
+    suspend fun getYoutubeStream(url: String): Result<Song> {
+        val streamExtractor = service.getStreamExtractor(url)
 
-                    override fun getMimeType(): String {
-                        return mimeType ?: ""
-                    }
-                }
-            } ?: throw IllegalArgumentException("None of streams is Url.")
+        fun StreamExtractor.string(): String {
+            return "StreamExtractor(" +
+                    "url=$url, " +
+                    "name=$name, " +
+                    "length=$length, " +
+                    "host=$host, " +
+                    "subchannelname=$subChannelName, " +
+                    "uploaderName=$uploaderName"
+        }
+        return runCatching {
+            withContext(Dispatchers.IO) {
+                streamExtractor.fetchPage()
+                Timber.d(streamExtractor.string())
+            }
+            val streams = streamExtractor.audioStreams.toList()
+            Timber.d(streams.joinToString { "it.url=${it.isUrl}, ${it.content}\n" })
+            streams.find { it.isUrl }
+                ?.let {
+                    val mimeType = getMimeType(it)
+                    Song(
+                        id = streamExtractor.url,
+                        album = "",
+                        title = streamExtractor.name,
+                        duration = streamExtractor.length * 1000,
+                        artist = streamExtractor.uploaderName.substringBefore(" - Topic"),
+                        dateAdded = "",
+                        thumbnailUri = streamExtractor.thumbnails.firstOrNull()?.url,
+                        data = it.content
+                    )
+                } ?: throw IllegalArgumentException("None of streams is Url.")
+        }
     }
 
     private fun getMimeType(stream: Stream): String? {

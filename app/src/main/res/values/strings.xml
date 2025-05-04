@@ -5,4 +5,12 @@
     <string name="download_start_error_offline_license">Failed to obtain offline license</string>
     <string name="download_live_unsupported">This demo app does not support downloading live content</string>
     <string name="download_start_error">Failed to start download</string>
+
+    <!-- reCAPTCHA -->
+    <string name="title_activity_recaptcha">reCAPTCHA challenge</string>
+    <string name="subtitle_activity_recaptcha">Press \"Done\" when solved</string>
+    <string name="recaptcha_request_toast">reCAPTCHA challenge requested</string>
+    <string name="recaptcha_solve">Solve</string>
+    <string name="done">Done</string>
+    <string name="recaptcha_cookies_key">Recaptcha Cookies Key</string>
 </resources>

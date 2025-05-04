@@ -3,6 +3,7 @@ package dev.keego.musicplayer.noti
 import android.os.Bundle
 import androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT
 import androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -34,6 +35,8 @@ class PlaybackService : MediaSessionService() {
          */
         val cacheDataSourceFactory: DataSource.Factory =
             DemoUtil.getDataSourceFactory(this)
+
+        Log.setLogLevel(Log.LOG_LEVEL_ERROR)
 
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(

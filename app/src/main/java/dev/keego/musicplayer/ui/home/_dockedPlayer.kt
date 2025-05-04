@@ -54,7 +54,7 @@ fun _dockedPlayer(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)) {
             AsyncImage(
-                model = song.albumUri,
+                model = song.thumbnailUri,
                 null,
                 modifier = Modifier
                     .size(48.dp)
