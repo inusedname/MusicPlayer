@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.mapNotNull
 abstract class BaseViewModel<S: Any?, E: Any>: ViewModel() {
     private val _state = MutableStateFlow(initialState())
     val state = _state.asStateFlow()
-    private val _event = MutableSharedFlow<E>(replay = 1)
+    private val _event = MutableSharedFlow<E>()
     val event = _event.asSharedFlow()
 
     abstract fun initialState(): S
@@ -28,7 +28,7 @@ abstract class BaseViewModel<S: Any?, E: Any>: ViewModel() {
         _state.value = newState
     }
 
-    protected fun publishEvent(e: E) {
-        _event.tryEmit(e)
+    protected suspend fun publishEvent(e: E) {
+        _event.emit(e)
     }
 }

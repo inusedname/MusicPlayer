@@ -1,18 +1,28 @@
 package dev.keego.musicplayer.ui.player
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ShuffleOn
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.VolumeDown
+import androidx.compose.material.icons.filled.VolumeMute
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,119 +31,203 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import dev.keego.musicplayer.config.theme.Shapes
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.stuff.playbackAsState
 import dev.keego.musicplayer.stuff.progressAsState
 import dev.keego.musicplayer.stuff.progressMsAsState
 import dev.keego.musicplayer.ui.UiState
-import dev.keego.musicplayer.ui.lyric.browse_lyrics_
 import kotlinx.coroutines.delay
 
-@UnstableApi
 @Composable
-fun player_(
-    lyricViewModel: LyricViewModel,
+fun PlayerScreen(
     song: Song,
     player: Player,
-    favorite: Boolean,
-    favoriteClick: (Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var showBrowseLyrics by remember { mutableStateOf(false) }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        CompositionLocalProvider(LocalContentColor provides Color.White) {
-            _player_content(
-                modifier = Modifier.background(MaterialTheme.colorScheme.background),
-                lyricViewModel = lyricViewModel,
-                song = song,
-                player = player,
-                favorite = favorite,
-                favoriteClick = favoriteClick,
-                closeClick = onDismiss
-            ) {
-                showBrowseLyrics = true
+        Surface {
+            PlayerScreenContent(song, player, onDismiss)
+        }
+    }
+}
+
+@Composable
+private fun PlayerScreenContent(
+    song: Song,
+    player: Player,
+    onClickClose: () -> Unit,
+) {
+    var isFavorite by remember { mutableStateOf(false) }
+    var volume by remember { mutableFloatStateOf(80f) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onClickClose) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back"
+                )
             }
-            if (showBrowseLyrics) {
-                browse_lyrics_(song = song, onDismiss = { showBrowseLyrics = false }) {
-                    /*TODO*/
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Now Playing",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+
+            IconButton(onClick = { /* Show more options */ }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More"
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Album Art
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentAlignment = Alignment.Center
+        ) {
+            AsyncImage(
+                model = song.thumbnailUri,
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .aspectRatio(1f)
+                    .clip(MaterialTheme.shapes.large),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Song Info
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Progress Bar, Main controls
+        _controller(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .weight(1f),
+            player = player
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Volume and Actions
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Volume control
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                val VolumeIcon = when {
+                    volume == 0f -> Icons.Default.VolumeMute
+                    volume < 50f -> Icons.Default.VolumeDown
+                    else -> Icons.Default.VolumeUp
+                }
+
+                IconButton(onClick = { /* Toggle mute */ }) {
+                    Icon(
+                        imageVector = VolumeIcon,
+                        contentDescription = "Volume",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Slider(
+                    value = volume / 100f,
+                    onValueChange = { volume = it * 100f },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Action buttons
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(
+                    onClick = { isFavorite = !isFavorite }
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                IconButton(onClick = { /* Share */ }) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             }
         }
     }
 }
 
-@UnstableApi
-@Composable
-private fun _player_content(
-    modifier: Modifier = Modifier,
-    lyricViewModel: LyricViewModel,
-    song: Song,
-    player: Player,
-    favorite: Boolean,
-    favoriteClick: (Boolean) -> Unit,
-    closeClick: () -> Unit,
-    showBrowseLyrics: () -> Unit,
-) {
-    Column(
-        modifier
-            .navigationBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 8.dp)
-    ) {
-        Column(
-            Modifier.padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            IconButton(onClick = closeClick) {
-                Icon(imageVector = Icons.Outlined.Close, contentDescription = null)
-            }
-            AsyncImage(
-                song.thumbnailUri, null, modifier = Modifier
-                    .clip(MaterialTheme.shapes.medium)
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-            )
-            Column {
-                Column {
-                    Text(text = song.title, style = MaterialTheme.typography.headlineMedium)
-                    Row {
-                        Text(
-                            text = song.artist,
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.alpha(0.7f)
-                        )
-                        Spacer(Modifier.weight(1f))
-                        IconButton(onClick = { /*TODO*/ }) {
-                            Icon(Icons.Outlined.Share, null)
-                        }
-                        IconButton(onClick = { favoriteClick(!favorite) }) {
-                            Icon(
-                                if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                null,
-                                tint = if (favorite) MaterialTheme.colorScheme.primary else Color.White
-                            )
-                        }
-                    }
-                }
-                _controller(modifier = Modifier.padding(top = 8.dp), player = player)
-            }
-            _lyric(player, lyricViewModel, showBrowseLyrics)
-            Spacer(modifier = Modifier.height(100.dp))
-        }
-    }
-}
 
 @Composable
 private fun _lyric(
@@ -291,33 +385,62 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
             )
         }
         Row(
-            modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .align(Alignment.CenterHorizontally),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                Icon(imageVector = Icons.Rounded.Shuffle, contentDescription = null)
+            IconButton(onClick = { /* Toggle shuffle */ }) {
+                Icon(
+                    imageVector = Icons.Default.ShuffleOn,
+                    contentDescription = "Shuffle",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                Icon(imageVector = Icons.Rounded.SkipPrevious, contentDescription = null)
+
+            IconButton(
+                onClick = { /* Previous track */ },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SkipPrevious,
+                    contentDescription = "Previous",
+                    modifier = Modifier.size(32.dp)
+                )
             }
+
             IconButton(
                 onClick = if (playing) player::pause else player::play,
                 modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(1f),
-                colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    .size(64.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    )
             ) {
                 Icon(
                     imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                     contentDescription = null
                 )
             }
-            IconButton(onClick = { /*TODO*/ }, modifier = Modifier.weight(1f)) {
-                Icon(imageVector = Icons.Rounded.SkipNext, contentDescription = null)
+
+            IconButton(
+                onClick = { /* Next track */ },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SkipNext,
+                    contentDescription = "Next",
+                    modifier = Modifier.size(32.dp)
+                )
             }
-            Spacer(modifier = Modifier.weight(1f))
+
+            IconButton(onClick = { /* Toggle repeat */ }) {
+                Icon(
+                    imageVector = Icons.Default.Repeat,
+                    contentDescription = "Repeat",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
