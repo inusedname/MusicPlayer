@@ -4,165 +4,301 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
-import dev.keego.musicplayer.config.theme.Shapes
-import dev.keego.musicplayer.remote.Streamable
+import dev.keego.musicplayer.ui.MockData
 import dev.keego.musicplayer.ui.PlayerViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(playerViewModel: PlayerViewModel) {
-    val context = LocalContext.current
-    val keyboard = LocalSoftwareKeyboardController.current
+    var searchQuery by remember { mutableStateOf("") }
+    var active by remember { mutableStateOf(false) }
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("All", "Songs", "Artists")
 
     val viewModel = hiltViewModel<SearchVimel>()
     val resultUiState by viewModel.state.collectAsState()
-    val scope = rememberCoroutineScope()
 
-    var query by remember { mutableStateOf("") }
+    fun onItemClick(item: SearchEntry) {
+        playerViewModel.playImmediate(item)
+    }
 
-    Column {
-        TextField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = { Text("Search") },
-            trailingIcon = {
-                IconButton(onClick = { query = "" }) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Search")
-                }
-            },
-            keyboardActions = KeyboardActions(onSearch = {
-                keyboard?.hide()
-                viewModel.query(query)
-            }),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            singleLine = true,
-            shape = RoundedCornerShape(50),
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            colors = TextFieldDefaults.colors(
-                disabledIndicatorColor = Color.Transparent,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
+    fun handleSearch(searchQuery: String) {
+        viewModel.search(searchQuery)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Search",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
         )
 
-        LaunchedEffect(Unit) {
-            viewModel.state.collect {
-                if (it.fetchingState is UiState.Success) {
-                    playerViewModel.playImmediate(it.fetchingState.value, false)
-                    viewModel.markAsPlayed()
+        SearchBar(
+            query = searchQuery,
+            onQueryChange = {
+                searchQuery = it
+                viewModel.getSuggestions(it)
+            },
+            onSearch = {
+                active = false
+                handleSearch(searchQuery)
+            },
+            active = active,
+            onActiveChange = { active = it },
+            placeholder = { Text("Search for songs, artists, or playlists") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            if (searchQuery.isNotEmpty()) {
+                // Generate suggestions based on the query
+                resultUiState.suggestions.map { suggestion ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                active = false
+                                searchQuery = suggestion
+                                handleSearch(searchQuery)
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(suggestion)
+                    }
+                }
+            } else {
+                // Show recent searches when no query
+                MockData.searchHistory.forEach { query ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                active = false
+                                searchQuery = query
+                                handleSearch(query)
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.History,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(query)
+                    }
                 }
             }
         }
 
-        when (val state = resultUiState.searchState) {
-            is UiState.Loading -> {
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth(0.25f)
-                    )
-                    Text(
-                        text = "Searching...",
-                        modifier = Modifier
-                            .padding(top = 8.dp)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Search options
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AssistChip(
+                onClick = { /* Voice search */ },
+                label = { Text("Voice") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Mic,
+                        contentDescription = "Voice Search",
+                        Modifier.size(AssistChipDefaults.IconSize)
                     )
                 }
-            }
+            )
 
-            is UiState.Success -> {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(state.value) { entry ->
-                        _result_entry(
-                            entry = entry,
-                            showLoading = resultUiState.fetchingState is UiState.Loading && (resultUiState.fetchingState as UiState.Loading<Streamable>).id == entry.detail.url,
-                            onItemClick = {
-                                viewModel.getStreamable(entry)
-                            }
-                        )
+            AssistChip(
+                onClick = { /* YouTube search */ },
+                label = { Text("YouTube") },
+                leadingIcon = {
+                    Box(
+                        modifier = Modifier
+                            .size(AssistChipDefaults.IconSize)
+                            .clip(CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("YT", color = MaterialTheme.colorScheme.error)
                     }
                 }
+            )
+
+            AssistChip(
+                onClick = { /* Paste URL */ },
+                label = { Text("Paste URL") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Link,
+                        contentDescription = "Paste URL",
+                        Modifier.size(AssistChipDefaults.IconSize)
+                    )
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (resultUiState.searchState is UiState.Success && searchQuery.isNotEmpty()) {
+            // Tab Row for search results
+            TabRow(selectedTabIndex = selectedTabIndex) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { Text(title) }
+                    )
+                }
             }
 
-            is UiState.Error -> {
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth(), contentAlignment = Alignment.Center
-                ) {
+            when (val searchState = resultUiState.searchState) {
+                is UiState.Loading -> {
+                    // Show loading indicator
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+                is UiState.Success -> {
+                    // Show search results
+                    SearchResultsList(searchState.value, ::onItemClick)
+                }
+                is UiState.Error -> {
+                    // Show error message
                     Text(
-                        text = "Error: ${state.exception.message}",
-                        textAlign = TextAlign.Center,
+                        text = "Error: ${searchState.exception.message}",
+                        color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.padding(16.dp)
                     )
                 }
-            }
 
-            is UiState.Idle -> {
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
+                is UiState.Idle -> {}
+            }
+        } else if (!active) {
+            // Search history when not actively searching
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 8.dp)
                 ) {
-                    Text(
-                        text = "Search for a song",
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth()
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Recent Searches",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+
+                LazyColumn {
+                    items(MockData.searchHistory) { query ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    searchQuery = query
+                                    handleSearch(query)
+                                }
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.History,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = query,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(
+                                onClick = { /* Remove from history */ },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Remove",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -170,53 +306,61 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
 }
 
 @Composable
-private fun _result_entry(
-    entry: SearchEntry,
-    showLoading: Boolean,
-    onItemClick: () -> Unit
-) {
-    Row(
-        Modifier
-            .height(IntrinsicSize.Min)
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .clickable(onClick = onItemClick)
-            .padding(8.dp)
+fun SearchResultsList(results: List<SearchEntry>, onItemClick: (SearchEntry) -> Unit) {
+    LazyColumn(
+        contentPadding = PaddingValues(vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        AsyncImage(
-            model = entry.detail.thumbnails.firstOrNull()?.url,
-            contentDescription = null,
-            modifier = Modifier
-                .clip(MaterialTheme.shapes.medium)
-                .fillMaxWidth(0.2f)
-                .aspectRatio(1f)
-        )
-        Column(
-            Modifier
-                .padding(start = 24.dp)
-                .fillMaxHeight()
-                .weight(1f)
-        ) {
-            Text(
-                text = entry.detail.name,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "No name",
-                style = MaterialTheme.typography.bodySmall,
+        items(results) { result ->
+            Row(
                 modifier = Modifier
-                    .alpha(0.8f)
-            )
-        }
-        if (showLoading) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(start = 8.dp)
-                    .align(Alignment.CenterVertically)
-            )
+                    .fillMaxWidth()
+                    .clickable(onClick = { onItemClick(result) })
+                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                AsyncImage(
+                    model = result.thumbnailUrl,
+                    contentDescription = result.title,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(MaterialTheme.shapes.small),
+                    contentScale = ContentScale.Crop
+                )
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp)
+                ) {
+                    Text(
+                        text = result.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = result.artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                Text(
+                    text = formatDuration(result.duration),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
+
+fun formatDuration(seconds: Int): String {
+    val minutes = seconds / 60
+    val remainingSeconds = seconds % 60
+    return "$minutes:${remainingSeconds.toString().padStart(2, '0')}"
+}
+

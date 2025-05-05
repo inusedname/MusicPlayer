@@ -22,12 +22,11 @@ class LyricViewModel @Inject constructor(
     fun queryLyric(song: Song) {
         viewModelScope.launch(Dispatchers.IO) {
             lyricUiState.value = UiState.LOADING
-            val result = lyricRepository.getBestMatch(song)
-            if (result.isSuccessful) {
+            lyricRepository.getBestMatch(song).onSuccess {
                 lyricUiState.value = UiState.SUCCESS
-                lyric.value = LrcLyric.fromLyric(result.body()!!)
-            } else {
-                lyricUiState.value = UiState.ERROR(result.message())
+                lyric.value = LrcLyric.fromLyric(it)
+            }.onFailure {
+                lyricUiState.value = UiState.ERROR(it.message ?: "Unknown error")
             }
         }
     }

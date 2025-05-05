@@ -2,6 +2,7 @@ package dev.keego.musicplayer.remote.lrclib
 
 import android.content.Context
 import okhttp3.Cache
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import retrofit2.Response
 import retrofit2.Retrofit
@@ -29,10 +30,10 @@ interface LrcLibLyricDao {
     ): Response<List<BestMatchResultPOJO>>
 
     companion object {
-        fun build(context: Context): LrcLibLyricDao {
+        fun build(okHttpClient: OkHttpClient, context: Context): LrcLibLyricDao {
             val cacheDir = context.cacheDir
             val cacheSize = 10L * 1024L * 1024L // 10 MiB
-            val httpClient = okhttp3.OkHttpClient.Builder()
+            val httpClient = okHttpClient.newBuilder()
                 .readTimeout(30L, TimeUnit.SECONDS)
                 .writeTimeout(30L, TimeUnit.SECONDS)
                 .connectTimeout(30L, TimeUnit.SECONDS)

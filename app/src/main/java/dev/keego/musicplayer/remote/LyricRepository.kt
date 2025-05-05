@@ -13,33 +13,34 @@ class LyricRepository(
     private val remoteDao: LrcLibLyricDao,
     private val localDao: LocalLyricDao,
 ) {
-    suspend fun getBestMatch(song: Song): Response<Lyric> {
+    suspend fun getBestMatch(song: Song): Result<Lyric> {
         val local: Lyric? = localDao.get(song.id)
         if (local != null) {
-            return Response.success(local)
+            return Result.success(local)
         }
-        val response = remoteDao.getBestMatch(
-            song.title,
-            song.artist,
-            song.album.ifEmpty { song.title },
-            (song.duration / 1000).toInt()
-        )
-        if (response.isSuccessful) {
-            val body = response.body()!!
-            val remote = Lyric(
-                id = song.id,
-                lrcLibId = body.id,
-                query = Lyric.getQuery(song),
-                lrcContent = body.syncedLyrics
+        try {
+            val response = remoteDao.getBestMatch(
+                song.title,
+                song.artist,
+                song.album.ifEmpty { song.title },
+                (song.duration / 1000).toInt()
             )
-            localDao.save(remote)
-            return Response.success(remote)
-        } else {
-            Timber.e(response.errorBody()?.string() ?: "null")
-            return Response.error(
-                response.code(),
-                response.errorBody() ?: "undefined".toResponseBody(null)
-            )
+            if (response.isSuccessful) {
+                val body = response.body()!!
+                val remote = Lyric(
+                    id = song.id,
+                    lrcLibId = body.id,
+                    query = Lyric.getQuery(song),
+                    lrcContent = body.syncedLyrics
+                )
+                localDao.save(remote)
+                return Result.success(remote)
+            } else {
+                return Result.failure(Exception("Error: ${response.code()} ${response.errorBody()?.string() ?: ""}"))
+            }
+        } catch (t: Throwable) {
+            Timber.e(t)
+            return Result.failure(t)
         }
     }
 

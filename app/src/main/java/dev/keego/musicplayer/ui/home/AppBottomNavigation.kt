@@ -43,7 +43,7 @@ fun AppBottomNavigation(navController: NavController) = @Composable {
                 onClick = {
                     navController.navigate(it.route) {
                         launchSingleTop = true
-                        popUpTo(Route.Home)
+                        popUpTo(it.route)
                     }
                 },
                 icon = {

@@ -13,6 +13,7 @@ import dev.keego.musicplayer.remote.lrclib.LrcLibLyricDao
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
 import dev.keego.musicplayer.remote.youtube.YoutubeExtractor
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import javax.inject.Singleton
 
 @InstallIn(SingletonComponent::class)
@@ -23,9 +24,10 @@ class AppModule {
     @Singleton
     fun provideLyricRepository(
         @ApplicationContext context: Context,
+        baseOkHttpClient: OkHttpClient,
         localDao: LocalLyricDao,
     ): LyricRepository {
-        return LyricRepository(LrcLibLyricDao.build(context), localDao)
+        return LyricRepository(LrcLibLyricDao.build(baseOkHttpClient, context), localDao)
     }
 
     @Provides
@@ -54,6 +56,9 @@ class AppModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
+            .addNetworkInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
             .build()
     }
 }

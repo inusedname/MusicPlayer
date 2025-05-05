@@ -23,34 +23,29 @@ class SearchVimel @Inject constructor(
     private val downloadCenter: WeakReference<DownloadCenter> =
         WeakReference(DemoUtil.getDownloadCenter(context))
 
-    fun query(query: String) {
+    fun getSuggestions(query: String) {
+        viewModelScope.launch {
+            setState { it.copy(searchState = UiState.Loading())}
+            repo.getSuggestions(query)
+                .onSuccess { suggestions ->
+                    setState { it.copy(suggestions = suggestions) }
+                }.onFailure { throwable ->
+                    Timber.e(throwable)
+                }
+        }
+    }
+
+    fun search(query: String) {
         viewModelScope.launch {
             setState { it.copy(searchState = UiState.Loading())}
             repo.search(query)
                 .onSuccess { items ->
-                    setState { it.copy(searchState = UiState.Success(items.map { SearchEntry(it) }))}
+                    setState { it.copy(searchState = UiState.Success(items.map { SearchEntry.fromInfoItem(it) }))}
                 }.onFailure { throwable ->
                     Timber.e(throwable)
                     setState { it.copy(searchState = UiState.Error(throwable))}
                 }
         }
-    }
-
-    fun getStreamable(entry: SearchEntry) {
-        viewModelScope.launch {
-            setState { it.copy(fetchingState = UiState.Loading(entry.detail.url))}
-            repo.getYoutubeStream(entry.detail)
-                .onSuccess { streamable ->
-                    setState { it.copy(fetchingState = UiState.Success(streamable))}
-                }.onFailure { throwable ->
-                    Timber.e(throwable)
-                    setState { it.copy(fetchingState = UiState.Error(throwable))}
-                }
-        }
-    }
-
-    fun markAsPlayed() {
-        setState { it.copy(fetchingState = UiState.Idle())}
     }
 
 //    private val renderersFactory = DemoUtil.buildRenderersFactory(context, false)

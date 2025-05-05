@@ -10,7 +10,13 @@ class OnlineSongRepository(private val youtube: YoutubeExtractor) {
         return youtube.search(query)
     }
 
-    suspend fun getYoutubeStream(source: InfoItem): Result<Streamable> {
-        return youtube.getYoutubeStream(source.url)
+    suspend fun getYoutubeMusicStream(url: String): Result<Streamable> {
+        return youtube.getYoutubeMusicStream(url)
+    }
+
+    suspend fun getSuggestions(query: String): Result<List<String>> {
+        return runCatching {
+            youtube.getSearchSuggestions(query)
+        }
     }
 }

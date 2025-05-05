@@ -5,7 +5,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.schabi.newpipe.extractor.InfoItem
+import org.schabi.newpipe.extractor.MediaFormat
 import org.schabi.newpipe.extractor.NewPipe
+import org.schabi.newpipe.extractor.services.youtube.ItagItem
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.AudioStream
@@ -37,7 +39,7 @@ class YoutubeExtractor(okHttpClient: OkHttpClient) {
         }
     }
 
-    suspend fun getYoutubeStream(url: String): Result<Song> {
+    suspend fun getYoutubeMusicStream(url: String): Result<Song> {
         val streamExtractor = service.getStreamExtractor(url)
 
         fun StreamExtractor.string(): String {
@@ -56,9 +58,8 @@ class YoutubeExtractor(okHttpClient: OkHttpClient) {
             }
             val streams = streamExtractor.audioStreams.toList()
             Timber.d(streams.joinToString { "it.url=${it.isUrl}, ${it.content}\n" })
-            streams.find { it.isUrl }
+            streams.filter { it.isUrl }.sortedByDescending { if (it.averageBitrate == 128) 1 else 0 }.firstOrNull()
                 ?.let {
-                    val mimeType = getMimeType(it)
                     Song(
                         id = streamExtractor.url,
                         album = "",
@@ -66,10 +67,10 @@ class YoutubeExtractor(okHttpClient: OkHttpClient) {
                         duration = streamExtractor.length * 1000,
                         artist = streamExtractor.uploaderName.substringBefore(" - Topic"),
                         dateAdded = "",
-                        thumbnailUri = streamExtractor.thumbnails.firstOrNull()?.url,
+                        thumbnailUri = streamExtractor.thumbnails.maxByOrNull { it.estimatedResolutionLevel }?.url,
                         data = it.content
                     )
-                } ?: throw IllegalArgumentException("None of streams is Url.")
+                } ?: throw IllegalArgumentException("None of streams is Url")
         }
     }
 
