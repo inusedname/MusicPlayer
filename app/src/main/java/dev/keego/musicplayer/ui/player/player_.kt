@@ -12,11 +12,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.ShuffleOn
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
@@ -85,8 +87,8 @@ private fun PlayerScreenContent(
         ) {
             IconButton(onClick = onClickClose) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back"
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Close"
                 )
             }
 
@@ -391,7 +393,7 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
         ) {
             IconButton(onClick = { /* Toggle shuffle */ }) {
                 Icon(
-                    imageVector = Icons.Default.ShuffleOn,
+                    imageVector = Icons.Default.Shuffle,
                     contentDescription = "Shuffle",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -419,7 +421,8 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
             ) {
                 Icon(
                     imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                    contentDescription = null
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
 

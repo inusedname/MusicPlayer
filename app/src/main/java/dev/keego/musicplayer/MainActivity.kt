@@ -159,9 +159,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
                             _dockedPlayer(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
-                                    .fillMaxWidth()
-                                    .height(100.dp)
-                                    .padding(12.dp),
+                                    .fillMaxWidth(),
                                 player = mediaController.get(),
                                 song = it,
                                 favorite = isFavorite,

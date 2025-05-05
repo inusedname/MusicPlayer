@@ -14,6 +14,7 @@ import org.schabi.newpipe.extractor.stream.AudioStream
 import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.Stream
 import org.schabi.newpipe.extractor.stream.StreamExtractor
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.VideoStream
 import timber.log.Timber
 
@@ -30,12 +31,12 @@ class YoutubeExtractor(okHttpClient: OkHttpClient) {
         suggestionExtractor.suggestionList(query)
     }
 
-    suspend fun search(query: String): Result<List<InfoItem>> = withContext(Dispatchers.IO) {
+    suspend fun search(query: String): Result<List<StreamInfoItem>> = withContext(Dispatchers.IO) {
         val searchExtractor = service.getSearchExtractor(query, listOf(YoutubeSearchQueryHandlerFactory.MUSIC_SONGS), "")
         runCatching {
             searchExtractor.fetchPage()
             val items = searchExtractor.initialPage.items
-            items
+            items.mapNotNull { it as? StreamInfoItem }
         }
     }
 

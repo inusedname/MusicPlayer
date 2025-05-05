@@ -2,6 +2,7 @@ package dev.keego.musicplayer.ui.search
 
 import org.schabi.newpipe.extractor.Image
 import org.schabi.newpipe.extractor.InfoItem
+import org.schabi.newpipe.extractor.stream.StreamInfoItem
 
 
 data class SearchEntry(
@@ -13,12 +14,12 @@ data class SearchEntry(
     val url: String,
 ) {
     companion object {
-        fun fromInfoItem(item: InfoItem): SearchEntry {
+        fun fromInfoItem(item: StreamInfoItem): SearchEntry {
             return SearchEntry(
                 thumbnailUrl = item.thumbnails.maxByOrNull { it.estimatedResolutionLevel }?.url,
                 title = item.name,
-                artist = "unknown",
-                duration = 1,
+                artist = item.uploaderName,
+                duration = item.duration.toInt(),
                 provider = Provider.YOUTUBE_MUSIC,
                 url = item.url,
             )
