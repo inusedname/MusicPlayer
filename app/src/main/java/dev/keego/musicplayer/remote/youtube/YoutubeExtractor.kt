@@ -64,7 +64,7 @@ class YoutubeExtractor(okHttpClient: OkHttpClient) {
                         title = streamExtractor.name,
                         duration = streamExtractor.length * 1000,
                         artist = streamExtractor.uploaderName.substringBefore(" - Topic"),
-                        thumbnailUri = streamExtractor.thumbnails.maxByOrNull { it.estimatedResolutionLevel }?.url,
+                        thumbnailUri = streamExtractor.thumbnails.maxByOrNull { it.height }?.url,
                         data = it.content
                     )
                 } ?: throw IllegalArgumentException("None of streams is Url")

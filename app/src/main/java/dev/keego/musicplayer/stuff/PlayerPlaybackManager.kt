@@ -5,7 +5,9 @@ import android.content.Context
 import android.media.session.PlaybackState
 import androidx.annotation.OptIn
 import androidx.collection.LruCache
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
 import androidx.media3.common.util.UnstableApi
@@ -19,6 +21,7 @@ import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.noti.PlaybackService
 import dev.keego.musicplayer.remote.Streamable
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
+import dev.keego.musicplayer.ui.PlayerVMEvent
 import dev.keego.musicplayer.ui.search.SearchEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -31,6 +34,11 @@ import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
 import timber.log.Timber
 import kotlin.math.min
+
+data class PlayerState(
+    val hasNext: Boolean = false,
+    val hasPrevious: Boolean = false,
+)
 
 class PlayerPlaybackManager(
     private val coroutineScope: CoroutineScope,
@@ -47,6 +55,7 @@ class PlayerPlaybackManager(
 
     private var nextTrackJob: Job? = null
     val currentSong = MutableStateFlow<Song?>(null)
+    val currentState = MutableStateFlow(PlayerState())
 
     @OptIn(UnstableApi::class)
     fun init(context: Context) {
@@ -54,7 +63,7 @@ class PlayerPlaybackManager(
         val future = MediaController.Builder(context, token).buildAsync()
         Futures.addCallback(
             future,
-            object: FutureCallback<MediaController> {
+            object : FutureCallback<MediaController> {
                 override fun onSuccess(result: MediaController?) {
                     _player.value = result
                     initPlayer()
@@ -78,51 +87,63 @@ class PlayerPlaybackManager(
 
     private fun initPlayer() {
         player?.addListener(object : Player.Listener {
-            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
-                if (reason == Player.TIMELINE_CHANGE_REASON_SOURCE_UPDATE) {
-                    // duration is available now:
-                    // player.duration
-
-                    nextTrackJob = coroutineScope.launch {
-                        // on last 20 seconds of the song
-                        val timeLeftToStartFetchNextTrack = min(player!!.duration - 20000, 0L)
-                        delay(timeLeftToStartFetchNextTrack)
-                        prepareNextSong()
-                    }
-                }
-            }
-
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 super.onMediaItemTransition(mediaItem, reason)
                 (mediaItem?.localConfiguration?.uri?.toString() ?: "").let {
-                    Timber.d("Query: $it")
                     currentSong.value = streamMetadataCache[it]
-
                 }
             }
+
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                super.onTimelineChanged(timeline, reason)
+                currentState.value = PlayerState(
+                    hasNext = player?.hasNextMediaItem() == true,
+                    hasPrevious = player?.hasPreviousMediaItem() == true
+                )
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                super.onPlaybackStateChanged(playbackState)
+            }
         })
+
+        coroutineScope.launch {
+            while(true) {
+                delay(5000)
+                if (playbackQueue.isNotEmpty() && player?.hasNextMediaItem() == false) {
+                    prepareNextSong()
+                }
+            }
+        }
     }
 
     private suspend fun prepareNextSong() {
-        if (playbackQueue.size > 1) { // When player is already running
-            playbackQueue.removeAt(0)
-        }
-        val streamable = streamMetadataCache.get(playbackQueue[0]) ?: run {
+        if (playbackQueue.isEmpty()) return
+        val song = streamMetadataCache.get(playbackQueue[0]) ?: run {
             fetchAndCacheStreamInfo()
         }
-        if (streamable == null) return
+        if (song == null) return
+        playbackQueue.removeAt(0)
         val mediaItem = MediaItem.Builder()
-            .setUri(streamable.getStreamUri())
-            .setMimeType(streamable.getMimeType())
+            .setUri(song.getStreamUri())
+            .setMimeType(song.getMimeType())
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setArtworkUri(song.thumbnailUri?.toUri())
+                    .setTitle(song.title)
+                    .setArtist(song.artist)
+                    .build()
+            )
             .build()
         player?.addMediaItem(mediaItem)
+        Timber.d("player medium size: ${player?.mediaItemCount}")
         if (player?.playbackState == Player.STATE_IDLE) {
             player?.prepare()
             player?.play()
         }
     }
 
-    private suspend fun fetchAndCacheStreamInfo(): Streamable? {
+    private suspend fun fetchAndCacheStreamInfo(): Song? {
         val res = onlineSongRepository.getYoutubeMusicStream(playbackQueue[0])
         return res.onSuccess {
             streamMetadataCache.put(it.getStreamUri().toString(), it)
@@ -131,8 +152,8 @@ class PlayerPlaybackManager(
         }.getOrNull()
     }
 
-    fun addSingle(streamInfo: StreamInfoItem) {
-        playbackQueue.add(streamInfo.url)
+    fun addSingle(searchEntry: SearchEntry) {
+        playbackQueue.add(searchEntry.url)
     }
 
     suspend fun playImmediately(searchEntry: SearchEntry) {
@@ -171,9 +192,5 @@ class PlayerPlaybackManager(
         playbackQueue.addAll(playlistWithTracksTbl.tracks.map {
             it.content
         })
-    }
-
-    fun getCurrentSong(): Song? {
-        return streamMetadataCache[playbackQueue.getOrNull(0) ?: ""]
     }
 }

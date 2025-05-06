@@ -68,18 +68,11 @@ import timber.log.Timber
 @AndroidEntryPoint
 class MainActivity : androidx.activity.ComponentActivity() {
     private val shareViewModel by viewModels<PlayerViewModel>()
-
-    private val playbackManager by lazy {
-        PlayerPlaybackManager(
-            coroutineScope = lifecycleScope,
-            onlineSongRepository = shareViewModel.onlineSongRepository,
-            onException = shareViewModel::publishError,
-        )
-    }
+    private val playbackManager by lazy { shareViewModel.playbackManager }
 
     override fun onDestroy() {
         super.onDestroy()
-        playbackManager.release()
+        shareViewModel.playbackManager.release()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +90,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
                 var isFavorite by remember { mutableStateOf(false) }
                 var showFullScreenPlayer by remember { mutableStateOf(false) }
                 val player by playbackManager.playerFlow.collectAsState()
+                val playerState by playbackManager.currentState.collectAsState()
                 var playerError by remember { mutableStateOf<Throwable?>(null) }
 
                 LaunchedEffect(Unit) {
@@ -115,7 +109,9 @@ class MainActivity : androidx.activity.ComponentActivity() {
                                 }
 
                                 is PlayerVMEvent.PlayNext -> {
-                                    playbackManager.addSingle(event.streamInfoItem)
+                                    when {
+                                        event.searchEntry != null -> playbackManager.addSingle(event.searchEntry)
+                                    }
                                 }
 
                                 is PlayerVMEvent.PlayerError -> {
@@ -213,6 +209,7 @@ class MainActivity : androidx.activity.ComponentActivity() {
                         PlayerScreen(
                             song = currentSong!!,
                             player = player!!,
+                            playerState = playerState,
                         ) {
                             showFullScreenPlayer = false
                         }

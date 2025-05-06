@@ -44,6 +44,7 @@ import androidx.media3.common.Player
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.stuff.PlayerState
 import dev.keego.musicplayer.stuff.playbackAsState
 import dev.keego.musicplayer.stuff.progressAsState
 import dev.keego.musicplayer.stuff.progressMsAsState
@@ -54,6 +55,7 @@ import kotlinx.coroutines.delay
 fun PlayerScreen(
     song: Song,
     player: Player,
+    playerState: PlayerState,
     onDismiss: () -> Unit,
 ) {
     Dialog(
@@ -61,7 +63,7 @@ fun PlayerScreen(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface {
-            PlayerScreenContent(song, player, onDismiss)
+            PlayerScreenContent(song, player, playerState, onDismiss)
         }
     }
 }
@@ -70,6 +72,7 @@ fun PlayerScreen(
 private fun PlayerScreenContent(
     song: Song,
     player: Player,
+    playerState: PlayerState,
     onClickClose: () -> Unit,
 ) {
     var isFavorite by remember { mutableStateOf(false) }
@@ -163,7 +166,8 @@ private fun PlayerScreenContent(
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
                 .weight(1f),
-            player = player
+            player = player,
+            playerState = playerState,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -350,7 +354,7 @@ private fun _lyric(
 }
 
 @Composable
-fun _controller(modifier: Modifier = Modifier, player: Player) {
+fun _controller(modifier: Modifier = Modifier, player: Player, playerState: PlayerState) {
     val progress by player.progressAsState()
     val playing by player.playbackAsState()
 
@@ -391,7 +395,7 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { /* Toggle shuffle */ }) {
+            IconButton(onClick = {  }) {
                 Icon(
                     imageVector = Icons.Default.Shuffle,
                     contentDescription = "Shuffle",
@@ -400,7 +404,8 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
             }
 
             IconButton(
-                onClick = { /* Previous track */ },
+                enabled = playerState.hasPrevious,
+                onClick = { player.seekToPreviousMediaItem() },
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
@@ -427,7 +432,8 @@ fun _controller(modifier: Modifier = Modifier, player: Player) {
             }
 
             IconButton(
-                onClick = { /* Next track */ },
+                enabled = playerState.hasNext,
+                onClick = { player.seekToNextMediaItem() },
                 modifier = Modifier.size(48.dp)
             ) {
                 Icon(
