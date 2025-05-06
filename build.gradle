@@ -10,8 +10,7 @@ buildscript {
         // https://dagger.dev/hilt/gradle-setup
         // https://developer.android.com/studio/releases/gradle-plugin
 
-        accompanist_version = '0.28.0'
-        compose_bom_version = '2023.10.01'
+        compose_bom_version = '2024.09.00'
         firebase_bom_version = '31.1.1'
         compose_destinations_version = '1.8.32-beta'
         room_version = '2.6.1'
