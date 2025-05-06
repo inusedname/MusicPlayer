@@ -30,10 +30,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -43,13 +45,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import dev.keego.musicplayer.ui.MockData
 import dev.keego.musicplayer.ui.PlayerViewModel
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,27 +88,33 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
         )
 
         SearchBar(
-            query = searchQuery,
-            onQueryChange = {
-                searchQuery = it
-                viewModel.getSuggestions(it)
+            inputField = {
+                SearchBarDefaults.InputField(
+                    query = searchQuery,
+                    onQueryChange = {
+                        searchQuery = it
+                        viewModel.getSuggestions(it)
+                    },
+                    onSearch = {
+                        handleSearch(searchQuery)
+                        active = false
+                    },
+                    placeholder = { Text("Search for songs, artists, or playlists") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    },
+                    expanded = active,
+                    onExpandedChange = { active = it },
+                )
             },
-            onSearch = {
-                active = false
-                handleSearch(searchQuery)
-            },
-            active = active,
-            onActiveChange = { active = it },
-            placeholder = { Text("Search for songs, artists, or playlists") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear")
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            expanded = active,
+            onExpandedChange = { active = it },
         ) {
             if (searchQuery.isNotEmpty()) {
                 // Generate suggestions based on the query
@@ -130,7 +142,7 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
                 }
             } else {
                 // Show recent searches when no query
-                MockData.searchHistory.forEach { query ->
+                resultUiState.searchHistories.forEach { query ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -226,10 +238,12 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
                         CircularProgressIndicator()
                     }
                 }
+
                 is UiState.Success -> {
                     // Show search results
                     SearchResultsList(searchState.value, ::onItemClick)
                 }
+
                 is UiState.Error -> {
                     // Show error message
                     Text(
@@ -263,7 +277,7 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
                 }
 
                 LazyColumn {
-                    items(MockData.searchHistory) { query ->
+                    items(resultUiState.searchHistories) { query ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

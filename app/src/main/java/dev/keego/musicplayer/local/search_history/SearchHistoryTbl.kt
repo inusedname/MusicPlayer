@@ -5,7 +5,8 @@ import androidx.room.PrimaryKey
 
 @Entity
 data class SearchHistoryTbl(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey
     val keyword: String,
+
+    val time: Long = System.currentTimeMillis(),
 )

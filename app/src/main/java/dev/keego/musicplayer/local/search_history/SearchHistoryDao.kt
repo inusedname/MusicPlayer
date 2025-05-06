@@ -1,16 +1,20 @@
 package dev.keego.musicplayer.local.search_history
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Upsert
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SearchHistoryDao {
-    @Insert
-    suspend fun insert(searchHistory: SearchHistoryTbl)
+    @Upsert
+    suspend fun upsert(searchHistory: SearchHistoryTbl)
 
-    @Query("SELECT * FROM SearchHistoryTbl ORDER BY id DESC LIMIT 5")
+    @Query("SELECT * FROM SearchHistoryTbl ORDER BY time DESC LIMIT 5")
+    fun getTopFiveAsFlow(): Flow<List<SearchHistoryTbl>>
+
+    @Query("SELECT * FROM SearchHistoryTbl ORDER BY time DESC LIMIT 5")
     suspend fun getTopFive(): List<SearchHistoryTbl>
 
     @Query("DELETE FROM SearchHistoryTbl")

@@ -104,8 +104,9 @@ class PlayerPlaybackManager(
     }
 
     private suspend fun prepareNextSong() {
-        if (playbackQueue.size <= 1) return
-        playbackQueue.removeAt(0)
+        if (playbackQueue.size > 1) { // When player is already running
+            playbackQueue.removeAt(0)
+        }
         val streamable = streamMetadataCache.get(playbackQueue[0]) ?: run {
             fetchAndCacheStreamInfo()
         }

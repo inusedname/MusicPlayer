@@ -23,13 +23,13 @@ import com.google.common.util.concurrent.ListenableFuture
 import dev.keego.musicplayer.R
 import dev.keego.musicplayer.local.ExoPlayerExceptionHandler
 
-@UnstableApi
 class PlaybackService : MediaSessionService() {
     private val customCommandFavorites = SessionCommand(ACTION_FAVORITES, Bundle.EMPTY)
     private var mediaSession: MediaSession? = null
 
     private val localBroadcastReceiver by lazy { LocalBroadcastManager.getInstance(applicationContext) }
 
+    @UnstableApi
     override fun onCreate() {
         super.onCreate()
         val command = CommandButton.Builder()
@@ -70,6 +70,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     private inner class MyCallBack : MediaSession.Callback {
+        @UnstableApi
         override fun onConnect(
             session: MediaSession,
             controller: MediaSession.ControllerInfo,

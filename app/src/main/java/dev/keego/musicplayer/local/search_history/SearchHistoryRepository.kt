@@ -1,16 +1,15 @@
 package dev.keego.musicplayer.local.search_history
 
-import dev.keego.musicplayer.local.search_history.SearchHistoryDao
-import dev.keego.musicplayer.local.search_history.SearchHistoryTbl
+import kotlinx.coroutines.flow.Flow
 
 class SearchHistoryRepository(private val searchHistoryDao: SearchHistoryDao) {
 
-    suspend fun insertSearchHistory(searchHistory: SearchHistoryTbl) {
-        searchHistoryDao.insert(searchHistory)
+    suspend fun upsertSearchHistory(searchHistory: SearchHistoryTbl) {
+        searchHistoryDao.upsert(searchHistory)
     }
 
-    suspend fun getTopFiveSearchHistory(): List<SearchHistoryTbl> {
-        return searchHistoryDao.getTopFive()
+    fun getTopFiveSearchHistory(): Flow<List<SearchHistoryTbl>> {
+        return searchHistoryDao.getTopFiveAsFlow()
     }
 
     suspend fun cleanUpSearchHistory() {

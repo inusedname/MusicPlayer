@@ -23,7 +23,6 @@ import androidx.media3.exoplayer.offline.Download
  * - Ở search, ấn download thì sẽ thêm id vào queue của download service. sau đó thì gọi post cho từng cái để lấy link
  * - Ở setting: show downloaded + pause download, stop các thứ
  */
-@UnstableApi
 @Composable
 fun setting_() {
     Scaffold {
@@ -40,15 +39,14 @@ fun setting_() {
     }
 }
 
-@UnstableApi
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun _download(onClick: () -> Unit) {
     val settingVimel = hiltViewModel<SettingVimel>()
     val downloads by settingVimel.downloads.collectAsStateWithLifecycle()
 
     val songDownloaded = remember(downloads) {
-        downloads.count { it.state == Download.STATE_COMPLETED }
+//        downloads.count { it.state == Download.STATE_COMPLETED }
+        0
     }
     val overallProgress = 0.5f
 

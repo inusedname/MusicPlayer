@@ -11,6 +11,7 @@ import dev.keego.musicplayer.local.lyric.LocalLyricDao
 import dev.keego.musicplayer.local.playlist.PlaylistDao
 import dev.keego.musicplayer.local.playlist.PlaylistRepository
 import dev.keego.musicplayer.local.search_history.SearchHistoryDao
+import dev.keego.musicplayer.local.search_history.SearchHistoryRepository
 import dev.keego.musicplayer.remote.LyricRepository
 import dev.keego.musicplayer.remote.lrclib.LrcLibLyricDao
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
@@ -45,6 +46,14 @@ class AppModule {
         playlistDao: PlaylistDao,
     ): PlaylistRepository {
         return PlaylistRepository(playlistDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSearchHistoryRepository(
+        searchHistoryDao: SearchHistoryDao,
+    ): SearchHistoryRepository {
+        return SearchHistoryRepository(searchHistoryDao)
     }
 
     @Provides

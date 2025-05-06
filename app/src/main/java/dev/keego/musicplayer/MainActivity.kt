@@ -66,7 +66,6 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @AndroidEntryPoint
-@UnstableApi
 class MainActivity : androidx.activity.ComponentActivity() {
     private val shareViewModel by viewModels<PlayerViewModel>()
 
