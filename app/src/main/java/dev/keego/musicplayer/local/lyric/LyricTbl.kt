@@ -1,11 +1,11 @@
-package dev.keego.musicplayer.local
+package dev.keego.musicplayer.local.lyric
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import dev.keego.musicplayer.model.Song
 
-@Entity
-data class Lyric(
+@Entity(tableName = "Lyric")
+data class LyricTbl(
     @PrimaryKey(autoGenerate = false)
     val id: String,
     val lrcLibId: Int,

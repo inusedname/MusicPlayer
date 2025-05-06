@@ -12,8 +12,9 @@ class MainApplication: Application() {
         Preferences.init(this)
 
         Timber.plant(object : Timber.DebugTree() {
-            override fun log(priority: Int, message: String?, vararg args: Any?) {
-                super.log(priority, ">> $message", *args)
+
+            override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+                super.log(priority, tag, ">>" + message, t)
             }
         })
     }

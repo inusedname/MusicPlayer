@@ -4,10 +4,7 @@ import dev.keego.musicplayer.model.Song
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
-import org.schabi.newpipe.extractor.InfoItem
-import org.schabi.newpipe.extractor.MediaFormat
 import org.schabi.newpipe.extractor.NewPipe
-import org.schabi.newpipe.extractor.services.youtube.ItagItem
 import org.schabi.newpipe.extractor.services.youtube.YoutubeService
 import org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory
 import org.schabi.newpipe.extractor.stream.AudioStream
@@ -67,7 +64,6 @@ class YoutubeExtractor(okHttpClient: OkHttpClient) {
                         title = streamExtractor.name,
                         duration = streamExtractor.length * 1000,
                         artist = streamExtractor.uploaderName.substringBefore(" - Topic"),
-                        dateAdded = "",
                         thumbnailUri = streamExtractor.thumbnails.maxByOrNull { it.estimatedResolutionLevel }?.url,
                         data = it.content
                     )

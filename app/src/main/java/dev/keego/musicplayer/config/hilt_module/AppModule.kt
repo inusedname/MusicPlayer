@@ -7,7 +7,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.keego.musicplayer.local.AppDatabase
-import dev.keego.musicplayer.local.LocalLyricDao
+import dev.keego.musicplayer.local.lyric.LocalLyricDao
+import dev.keego.musicplayer.local.playlist.PlaylistDao
+import dev.keego.musicplayer.local.playlist.PlaylistRepository
+import dev.keego.musicplayer.local.search_history.SearchHistoryDao
 import dev.keego.musicplayer.remote.LyricRepository
 import dev.keego.musicplayer.remote.lrclib.LrcLibLyricDao
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
@@ -38,6 +41,14 @@ class AppModule {
 
     @Provides
     @Singleton
+    fun providePlaylistRepository(
+        playlistDao: PlaylistDao,
+    ): PlaylistRepository {
+        return PlaylistRepository(playlistDao)
+    }
+
+    @Provides
+    @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
         return AppDatabase.createDatabase(context)
     }
@@ -60,5 +71,17 @@ class AppModule {
                 level = HttpLoggingInterceptor.Level.BODY
             })
             .build()
+    }
+
+    @Provides
+    @Singleton
+    fun providePlaylistDao(database: AppDatabase): PlaylistDao {
+        return database.playlistDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSearchHistoryDao(database: AppDatabase): SearchHistoryDao {
+        return database.searchHistoryDao()
     }
 }

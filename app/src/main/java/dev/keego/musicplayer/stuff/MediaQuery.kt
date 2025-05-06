@@ -43,7 +43,6 @@ object MediaQuery {
                         album = albumTitle,
                         title = title,
                         artist = artist,
-                        dateAdded = date,
                         duration = duration,
                         data = uri,
                         thumbnailUri = ContentUris.withAppendedId(

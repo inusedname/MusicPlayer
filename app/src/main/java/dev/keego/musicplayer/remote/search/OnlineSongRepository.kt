@@ -1,5 +1,6 @@
 package dev.keego.musicplayer.remote.search
 
+import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.remote.Streamable
 import dev.keego.musicplayer.remote.youtube.YoutubeExtractor
 import org.schabi.newpipe.extractor.InfoItem
@@ -11,7 +12,7 @@ class OnlineSongRepository(private val youtube: YoutubeExtractor) {
         return youtube.search(query)
     }
 
-    suspend fun getYoutubeMusicStream(url: String): Result<Streamable> {
+    suspend fun getYoutubeMusicStream(url: String): Result<Song> {
         return youtube.getYoutubeMusicStream(url)
     }
 

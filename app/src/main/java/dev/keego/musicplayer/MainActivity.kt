@@ -1,13 +1,17 @@
 package dev.keego.musicplayer
 
+import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -16,7 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,13 +30,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -42,6 +49,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.keego.musicplayer.config.theme.MusicPlayerTheme
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.noti.PlaybackService
+import dev.keego.musicplayer.stuff.PlayerPlaybackManager
+import dev.keego.musicplayer.stuff.currentSongAsState
 import dev.keego.musicplayer.ui.PlayerVMEvent
 import dev.keego.musicplayer.ui.PlayerViewModel
 import dev.keego.musicplayer.ui.home.AppBottomNavigation
@@ -54,51 +63,41 @@ import dev.keego.musicplayer.ui.setting.setting_
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import timber.log.Timber
-
-sealed class Route {
-
-    @Serializable
-    object Home : Route()
-
-    @Serializable
-    object Search : Route()
-
-    @Serializable
-    object Library : Route()
-}
 
 @AndroidEntryPoint
 @UnstableApi
 class MainActivity : androidx.activity.ComponentActivity() {
+    private val shareViewModel by viewModels<PlayerViewModel>()
 
-    private lateinit var mediaController: ListenableFuture<MediaController>
+    private val playbackManager by lazy {
+        PlayerPlaybackManager(
+            coroutineScope = lifecycleScope,
+            onlineSongRepository = shareViewModel.onlineSongRepository,
+            onException = shareViewModel::publishError,
+        )
+    }
 
     override fun onDestroy() {
         super.onDestroy()
-        mediaController.get().release()
+        playbackManager.release()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        mediaController = run {
-            val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
-            MediaController.Builder(this, token).buildAsync()
-        }
-
         setContent {
             MusicPlayerTheme {
                 val scope = rememberCoroutineScope()
+                val context = LocalContext.current
+                val owner = LocalLifecycleOwner.current
                 val homeNavController = rememberNavController()
                 val lyricViewModel = hiltViewModel<LyricViewModel>()
-                val shareViewModel = viewModel<PlayerViewModel>()
 
-                var song by remember { mutableStateOf<Song?>(null) }
+                val currentSong by playbackManager.currentSong.collectAsState()
+//                val currentSong by remember { mutableStateOf<Song?>(null)}
                 var isFavorite by remember { mutableStateOf(false) }
                 var showFullScreenPlayer by remember { mutableStateOf(false) }
-
+                val player by playbackManager.playerFlow.collectAsState()
                 var playerError by remember { mutableStateOf<Throwable?>(null) }
 
                 LaunchedEffect(Unit) {
@@ -106,20 +105,18 @@ class MainActivity : androidx.activity.ComponentActivity() {
                         shareViewModel.event.collectLatest { event ->
                             when (event) {
                                 is PlayerVMEvent.PlayImmediate -> {
-                                    (event.streamable as? Song)?.let {
-                                        song = it
-                                        Timber.d("song: $it")
-                                        lyricViewModel.queryLyric(it)
+//                                    (event.streamable as? Song)?.let {
+//                                        Timber.d("song: $it")
+//                                        lyricViewModel.queryLyric(it)
+//                                    }
+                                    when {
+                                        event.song != null -> playbackManager.playImmediately(event.song)
+                                        event.searchEntry != null -> playbackManager.playImmediately(event.searchEntry)
                                     }
-                                    mediaController.get().setMediaItem(
-                                        MediaItem.Builder()
-                                            .setMimeType(event.streamable.getMimeType())
-                                            .setUri(
-                                                event.streamable.getStreamUri()
-                                            ).build()
-                                    )
-                                    mediaController.get().prepare()
-                                    mediaController.get().play()
+                                }
+
+                                is PlayerVMEvent.PlayNext -> {
+                                    playbackManager.addSingle(event.streamInfoItem)
                                 }
 
                                 is PlayerVMEvent.PlayerError -> {
@@ -128,6 +125,25 @@ class MainActivity : androidx.activity.ComponentActivity() {
                                 }
                             }
                         }
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    playbackManager.init(context)
+                }
+
+                DisposableEffect(owner) {
+                    val broadcastReceiver = object: BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {
+                            if (intent?.action == PlaybackService.INTENT_EXO_PLAYER_EXCEPTION) {
+                                playerError = intent.getSerializableExtra(PlaybackService.INTENT_EXO_PLAYER_EXCEPTION) as Throwable
+                                scope.launch { delay(1500); playerError = null }
+                            }
+                        }
+                    }
+                    ContextCompat.registerReceiver(context, broadcastReceiver, IntentFilter(PlaybackService.INTENT_EXO_PLAYER_EXCEPTION), ContextCompat.RECEIVER_NOT_EXPORTED)
+                    onDispose {
+                        context.unregisterReceiver(broadcastReceiver)
                     }
                 }
 
@@ -155,13 +171,14 @@ class MainActivity : androidx.activity.ComponentActivity() {
                             }
                         }
 
-                        song?.let {
+                        Timber.d("currentSong: $currentSong player: $player")
+                        if (currentSong != null && player != null) {
                             _dockedPlayer(
                                 modifier = Modifier
                                     .align(Alignment.BottomCenter)
                                     .fillMaxWidth(),
-                                player = mediaController.get(),
-                                song = it,
+                                player = player!!,
+                                song = currentSong!!,
                                 favorite = isFavorite,
                                 onFavorite = { isFavorite = !isFavorite },
                                 onClick = { showFullScreenPlayer = true }
@@ -169,7 +186,9 @@ class MainActivity : androidx.activity.ComponentActivity() {
                         }
                         if (playerError != null) {
                             Snackbar(
-                                modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp),
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(8.dp),
                                 action = {
                                     Icon(
                                         imageVector = Icons.Default.Close,
@@ -191,10 +210,10 @@ class MainActivity : androidx.activity.ComponentActivity() {
                             }
                         }
                     }
-                    if (showFullScreenPlayer && song != null) {
+                    if (showFullScreenPlayer && currentSong != null && player != null) {
                         PlayerScreen(
-                            song = song!!,
-                            player = mediaController.get(),
+                            song = currentSong!!,
+                            player = player!!,
                         ) {
                             showFullScreenPlayer = false
                         }

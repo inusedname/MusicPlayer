@@ -10,7 +10,6 @@ data class Song(
     val title: String,
     val duration: Long,
     val artist: String,
-    val dateAdded: String,
     val thumbnailUri: String?,
     val data: String,
 ): Streamable {

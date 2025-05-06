@@ -28,5 +28,6 @@ data class SearchEntry(
 }
 
 enum class Provider {
+    LOCAL,
     YOUTUBE_MUSIC,
 }

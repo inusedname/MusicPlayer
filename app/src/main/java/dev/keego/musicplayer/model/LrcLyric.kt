@@ -1,6 +1,6 @@
 package dev.keego.musicplayer.model
 
-import dev.keego.musicplayer.local.Lyric
+import dev.keego.musicplayer.local.lyric.LyricTbl
 
 /**
  * @param content: Map of Timestamp (as Millisec) and Lyric
@@ -23,8 +23,8 @@ data class LrcLyric(
             return LrcLyric(mutableMap.toMap())
         }
 
-        fun fromLyric(lyric: Lyric): LrcLyric {
-            return fromText(lyric.lrcContent)
+        fun fromLyric(lyricTbl: LyricTbl): LrcLyric {
+            return fromText(lyricTbl.lrcContent)
         }
     }
 }

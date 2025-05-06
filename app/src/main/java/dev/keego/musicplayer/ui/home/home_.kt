@@ -50,7 +50,7 @@ fun HomeScreen(navController: NavController, playerViewModel: PlayerViewModel) {
                 items(songs) {
                     _song(it) {
                         playerViewModel.playImmediate(
-                            streamable = it, false
+                            it
                         )
                     }
                 }

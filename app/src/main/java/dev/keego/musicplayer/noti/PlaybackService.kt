@@ -1,6 +1,8 @@
 package dev.keego.musicplayer.noti
 
+import android.content.Intent
 import android.os.Bundle
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT
 import androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS
 import androidx.media3.common.util.Log
@@ -8,18 +10,25 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.session.*
+import androidx.media3.session.CommandButton
+import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSession.ConnectionResult
 import androidx.media3.session.MediaSession.ConnectionResult.AcceptedResultBuilder
+import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dev.keego.musicplayer.R
+import dev.keego.musicplayer.local.ExoPlayerExceptionHandler
 
 @UnstableApi
 class PlaybackService : MediaSessionService() {
     private val customCommandFavorites = SessionCommand(ACTION_FAVORITES, Bundle.EMPTY)
     private var mediaSession: MediaSession? = null
+
+    private val localBroadcastReceiver by lazy { LocalBroadcastManager.getInstance(applicationContext) }
 
     override fun onCreate() {
         super.onCreate()
@@ -45,6 +54,14 @@ class PlaybackService : MediaSessionService() {
                 )
             )
             .build()
+
+        player.addListener(ExoPlayerExceptionHandler {
+            localBroadcastReceiver.sendBroadcast(
+                Intent(INTENT_EXO_PLAYER_EXCEPTION).putExtra(
+                    INTENT_EXO_PLAYER_EXCEPTION, it
+                )
+            )
+        })
 
         mediaSession = MediaSession.Builder(this, player)
             .setCallback(MyCallBack())
@@ -100,5 +117,6 @@ class PlaybackService : MediaSessionService() {
 
     companion object {
         const val ACTION_FAVORITES = "action_favorites"
+        const val INTENT_EXO_PLAYER_EXCEPTION = "intent_exo_player_exception"
     }
 }
