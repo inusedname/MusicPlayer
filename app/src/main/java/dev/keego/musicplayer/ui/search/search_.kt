@@ -1,6 +1,8 @@
 package dev.keego.musicplayer.ui.search
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,11 +50,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.vstd.base_sdk_view.base.utils.toast
 import dev.keego.musicplayer.ui.MockData
 import dev.keego.musicplayer.ui.PlayerViewModel
 import timber.log.Timber
@@ -67,6 +71,7 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
 
     val viewModel = hiltViewModel<SearchVimel>()
     val resultUiState by viewModel.state.collectAsState()
+    val context = LocalContext.current
 
     fun onItemClick(item: SearchEntry) {
         playerViewModel.playImmediate(item)
@@ -74,6 +79,11 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
 
     fun handleSearch(searchQuery: String) {
         viewModel.search(searchQuery)
+    }
+
+    fun addToPlayNext(item: SearchEntry) {
+        context.toast("Added to play next!")
+        playerViewModel.playNext(item)
     }
 
     Column(
@@ -241,7 +251,7 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
 
                 is UiState.Success -> {
                     // Show search results
-                    SearchResultsList(searchState.value, ::onItemClick)
+                    SearchResultsList(searchState.value, ::onItemClick, ::addToPlayNext)
                 }
 
                 is UiState.Error -> {
@@ -319,8 +329,9 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun SearchResultsList(results: List<SearchEntry>, onItemClick: (SearchEntry) -> Unit) {
+fun SearchResultsList(results: List<SearchEntry>, onItemClick: (SearchEntry) -> Unit, onLongClick: (SearchEntry) -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -329,7 +340,10 @@ fun SearchResultsList(results: List<SearchEntry>, onItemClick: (SearchEntry) -> 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = { onItemClick(result) })
+                    .combinedClickable(
+                        onClick = { onItemClick(result) },
+                        onLongClick = { onLongClick(result) }
+                    )
                     .padding(vertical = 8.dp, horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
