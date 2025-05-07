@@ -8,7 +8,6 @@ import dev.keego.musicplayer.BaseViewModel
 import dev.keego.musicplayer.local.search_history.SearchHistoryRepository
 import dev.keego.musicplayer.local.search_history.SearchHistoryTbl
 import dev.keego.musicplayer.noti.DemoUtil
-import dev.keego.musicplayer.noti.DownloadCenter
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -22,9 +21,6 @@ class SearchVimel @Inject constructor(
     @ApplicationContext private val context: Context,
 ) : BaseViewModel<SearchUiState, Unit>() {
     override fun initialState(): SearchUiState = SearchUiState()
-
-    private val downloadCenter: WeakReference<DownloadCenter> =
-        WeakReference(DemoUtil.getDownloadCenter(context))
 
     init {
         viewModelScope.launch {

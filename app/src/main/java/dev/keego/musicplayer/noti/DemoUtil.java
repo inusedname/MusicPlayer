@@ -16,16 +16,22 @@
 package dev.keego.musicplayer.noti;
 
 import android.content.Context;
+import android.net.http.HttpEngine;
+import android.os.Build;
+import android.os.ext.SdkExtensions;
 import androidx.annotation.OptIn;
 import androidx.media3.database.DatabaseProvider;
 import androidx.media3.database.StandaloneDatabaseProvider;
 import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.datasource.DefaultHttpDataSource;
+import androidx.media3.datasource.HttpEngineDataSource;
 import androidx.media3.datasource.cache.Cache;
 import androidx.media3.datasource.cache.CacheDataSource;
 import androidx.media3.datasource.cache.NoOpCacheEvictor;
 import androidx.media3.datasource.cache.SimpleCache;
+import androidx.media3.datasource.cronet.CronetDataSource;
+import androidx.media3.datasource.cronet.CronetUtil;
 import androidx.media3.exoplayer.DefaultRenderersFactory;
 import androidx.media3.exoplayer.RenderersFactory;
 import androidx.media3.exoplayer.offline.DownloadManager;
@@ -36,37 +42,41 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.util.concurrent.Executors;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.chromium.net.CronetEngine;
+
+import dev.keego.musicplayer.BuildConfig;
 
 /** Utility methods for the demo app. */
 public final class DemoUtil {
 
   public static final String DOWNLOAD_NOTIFICATION_CHANNEL_ID = "download_channel";
 
-  /**
-   * Whether the demo application uses Cronet for networking. Note that Cronet does not provide
-   * automatic support for cookies (https://github.com/google/ExoPlayer/issues/5975).
-   *
-   * <p>If set to false, the platform's default network stack is used with a {@link CookieManager}
-   * configured in {@link #getHttpDataSourceFactory}.
-   */
-  private static final boolean USE_CRONET_FOR_NETWORKING = true;
-
   private static final String TAG = "DemoUtil";
   private static final String DOWNLOAD_CONTENT_DIRECTORY = "downloads";
 
   private static DataSource.@MonotonicNonNull Factory dataSourceFactory;
   private static DataSource.@MonotonicNonNull Factory httpDataSourceFactory;
+
+  @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
   private static @MonotonicNonNull DatabaseProvider databaseProvider;
+
   private static @MonotonicNonNull File downloadDirectory;
+
+  @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
   private static @MonotonicNonNull Cache downloadCache;
+
+  @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
   private static @MonotonicNonNull DownloadManager downloadManager;
-  private static @MonotonicNonNull DownloadCenter downloadCenter;
+
+  private static @MonotonicNonNull DownloadTracker downloadTracker;
+
+  @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
   private static @MonotonicNonNull DownloadNotificationHelper downloadNotificationHelper;
 
   /** Returns whether extension renderers should be used. */
   public static boolean useExtensionRenderers() {
-//    return BuildConfig.USE_DECODER_EXTENSIONS;
-    return false;
+    return BuildConfig.USE_DECODER_EXTENSIONS;
   }
 
   @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
@@ -83,24 +93,33 @@ public final class DemoUtil {
         .setExtensionRendererMode(extensionRendererMode);
   }
 
+  @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
   public static synchronized DataSource.Factory getHttpDataSourceFactory(Context context) {
-    if (httpDataSourceFactory == null) {
-//      if (USE_CRONET_FOR_NETWORKING) {
-//        context = context.getApplicationContext();
-//        @Nullable CronetEngine cronetEngine = CronetUtil.buildCronetEngine(context);
-//        if (cronetEngine != null) {
-//          httpDataSourceFactory =
-//              new CronetDataSource.Factory(cronetEngine, Executors.newSingleThreadExecutor());
-//        }
-//      }
-      if (httpDataSourceFactory == null) {
-        // We don't want to use Cronet, or we failed to instantiate a CronetEngine.
-        CookieManager cookieManager = new CookieManager();
-        cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
-        CookieHandler.setDefault(cookieManager);
-        httpDataSourceFactory = new DefaultHttpDataSource.Factory();
-      }
+    if (httpDataSourceFactory != null) {
+      return httpDataSourceFactory;
     }
+    context = context.getApplicationContext();
+    
+    // HttpEngineDataSource requires API 34, not just API 30 with extension version 7
+    if (Build.VERSION.SDK_INT >= 34) {
+      HttpEngine httpEngine = new HttpEngine.Builder(context).build();
+      httpDataSourceFactory =
+          new HttpEngineDataSource.Factory(httpEngine, Executors.newSingleThreadExecutor());
+      return httpDataSourceFactory;
+    }
+    
+    @Nullable CronetEngine cronetEngine = CronetUtil.buildCronetEngine(context);
+    if (cronetEngine != null) {
+      httpDataSourceFactory =
+          new CronetDataSource.Factory(cronetEngine, Executors.newSingleThreadExecutor());
+      return httpDataSourceFactory;
+    }
+    
+    // The device doesn't support HttpEngine and we failed to instantiate a CronetEngine.
+    CookieManager cookieManager = new CookieManager();
+    cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
+    CookieHandler.setDefault(cookieManager);
+    httpDataSourceFactory = new DefaultHttpDataSource.Factory();
     return httpDataSourceFactory;
   }
 
@@ -125,14 +144,15 @@ public final class DemoUtil {
     return downloadNotificationHelper;
   }
 
+  @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
   public static synchronized DownloadManager getDownloadManager(Context context) {
     ensureDownloadManagerInitialized(context);
     return downloadManager;
   }
 
-  public static synchronized DownloadCenter getDownloadCenter(Context context) {
+  public static synchronized DownloadTracker getDownloadTracker(Context context) {
     ensureDownloadManagerInitialized(context);
-    return downloadCenter;
+    return downloadTracker;
   }
 
   @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
@@ -157,8 +177,8 @@ public final class DemoUtil {
               getDownloadCache(context),
               getHttpDataSourceFactory(context),
               Executors.newFixedThreadPool(/* nThreads= */ 6));
-      downloadCenter =
-          new DownloadCenter(context, getHttpDataSourceFactory(context), downloadManager);
+      downloadTracker =
+          new DownloadTracker(context, getHttpDataSourceFactory(context), downloadManager);
     }
   }
 

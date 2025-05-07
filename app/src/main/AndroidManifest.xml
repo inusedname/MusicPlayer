@@ -8,8 +8,10 @@
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+
+    <!--    Download Service-->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
     <application
@@ -34,9 +36,10 @@
             </intent-filter>
         </service>
 
-        <service android:name=".noti.SongDownloadService"
+        <service android:name=".noti.DemoDownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync">
+            <!-- This is needed for Scheduler -->
             <intent-filter>
                 <action android:name="androidx.media3.exoplayer.downloadService.action.RESTART"/>
                 <category android:name="android.intent.category.DEFAULT"/>

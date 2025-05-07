@@ -13,4 +13,14 @@
     <string name="recaptcha_solve">Solve</string>
     <string name="done">Done</string>
     <string name="recaptcha_cookies_key">Recaptcha Cookies Key</string>
+    <string name="exo_download_notification_channel_name">Downloads</string>
+
+    <string name="track_selection_title_video">Video</string>
+
+    <string name="track_selection_title_audio">Audio</string>
+
+    <string name="track_selection_title_text">Text</string>
+
+    <string name="track_selection_title_image">Image</string>
+    <string name="track_selection_title">Select tracks</string>
 </resources>

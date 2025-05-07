@@ -1,5 +1,6 @@
 package dev.keego.musicplayer.ui.setting
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +40,7 @@ fun setting_() {
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
 fun _download(onClick: () -> Unit) {
     val settingVimel = hiltViewModel<SettingVimel>()

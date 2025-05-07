@@ -16,13 +16,14 @@
 package dev.keego.musicplayer.noti;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 
 import android.content.Context;
 import android.content.DialogInterface;
 import android.net.Uri;
-import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
-
 import androidx.annotation.Nullable;
 import androidx.annotation.OptIn;
 import androidx.fragment.app.FragmentManager;
@@ -31,6 +32,8 @@ import androidx.media3.common.DrmInitData;
 import androidx.media3.common.Format;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.TrackGroup;
+import androidx.media3.common.TrackSelectionParameters;
+import androidx.media3.common.Tracks;
 import androidx.media3.common.util.Log;
 import androidx.media3.common.util.Util;
 import androidx.media3.datasource.DataSource;
@@ -48,21 +51,19 @@ import androidx.media3.exoplayer.offline.DownloadRequest;
 import androidx.media3.exoplayer.offline.DownloadService;
 import androidx.media3.exoplayer.source.TrackGroupArray;
 import androidx.media3.exoplayer.trackselection.MappingTrackSelector.MappedTrackInfo;
-
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import dev.keego.musicplayer.R;
 
 /** Tracks media that has been downloaded. */
 @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)
-public class DownloadCenter {
+public class DownloadTracker {
 
   /** Listens for changes in the tracked downloads. */
   public interface Listener {
@@ -77,23 +78,16 @@ public class DownloadCenter {
   private final DataSource.Factory dataSourceFactory;
   private final CopyOnWriteArraySet<Listener> listeners;
   private final HashMap<Uri, Download> downloads;
-
-  private final List<Uri> todoDownloads;
   private final DownloadIndex downloadIndex;
 
   @Nullable private StartDownloadDialogHelper startDownloadDialogHelper;
 
-  public Map<Uri, Download> getDownloads() {
-    return Collections.unmodifiableMap(downloads);
-  }
-
-  public DownloadCenter(
+  public DownloadTracker(
       Context context, DataSource.Factory dataSourceFactory, DownloadManager downloadManager) {
     this.context = context.getApplicationContext();
     this.dataSourceFactory = dataSourceFactory;
     listeners = new CopyOnWriteArraySet<>();
     downloads = new HashMap<>();
-    todoDownloads = new ArrayList<>();
     downloadIndex = downloadManager.getDownloadIndex();
     downloadManager.addListener(new DownloadManagerListener());
     loadDownloads();
@@ -123,7 +117,7 @@ public class DownloadCenter {
     @Nullable Download download = downloads.get(checkNotNull(mediaItem.localConfiguration).uri);
     if (download != null && download.state != Download.STATE_FAILED) {
       DownloadService.sendRemoveDownload(
-          context, SongDownloadService.class, download.request.id, /* foreground= */ false);
+          context, DemoDownloadService.class, download.request.id, /* foreground= */ false);
     } else {
       if (startDownloadDialogHelper != null) {
         startDownloadDialogHelper.release();
@@ -169,11 +163,14 @@ public class DownloadCenter {
 
   private final class StartDownloadDialogHelper
       implements DownloadHelper.Callback,
+          TrackSelectionDialog.TrackSelectionListener,
           DialogInterface.OnDismissListener {
 
     private final FragmentManager fragmentManager;
     private final DownloadHelper downloadHelper;
     private final MediaItem mediaItem;
+
+    private TrackSelectionDialog trackSelectionDialog;
     private WidevineOfflineLicenseFetchTask widevineOfflineLicenseFetchTask;
     @Nullable private byte[] keySetId;
 
@@ -187,8 +184,11 @@ public class DownloadCenter {
 
     public void release() {
       downloadHelper.release();
+      if (trackSelectionDialog != null) {
+        trackSelectionDialog.dismiss();
+      }
       if (widevineOfflineLicenseFetchTask != null) {
-        widevineOfflineLicenseFetchTask.cancel(false);
+        widevineOfflineLicenseFetchTask.cancel();
       }
     }
 
@@ -203,12 +203,7 @@ public class DownloadCenter {
       }
 
       // The content is DRM protected. We need to acquire an offline license.
-      if (Util.SDK_INT < 18) {
-        Toast.makeText(context, R.string.error_drm_unsupported_before_api_18, Toast.LENGTH_LONG)
-            .show();
-        Log.e(TAG, "Downloading DRM protected content is not supported on API versions below 18");
-        return;
-      }
+
       // TODO(internal b/163107948): Support cases where DrmInitData are not in the manifest.
       if (!hasNonNullWidevineSchemaData(format.drmInitData)) {
         Toast.makeText(context, R.string.download_start_error_offline_license, Toast.LENGTH_LONG)
@@ -240,10 +235,27 @@ public class DownloadCenter {
       Log.e(TAG, logMessage, e);
     }
 
+    // TrackSelectionListener implementation.
+
+    @Override
+    public void onTracksSelected(TrackSelectionParameters trackSelectionParameters) {
+      for (int periodIndex = 0; periodIndex < downloadHelper.getPeriodCount(); periodIndex++) {
+        downloadHelper.clearTrackSelections(periodIndex);
+        downloadHelper.addTrackSelection(periodIndex, trackSelectionParameters);
+      }
+      DownloadRequest downloadRequest = buildDownloadRequest();
+      if (downloadRequest.streamKeys.isEmpty()) {
+        // All tracks were deselected in the dialog. Don't start the download.
+        return;
+      }
+      startDownload(downloadRequest);
+    }
+
     // DialogInterface.OnDismissListener implementation.
 
     @Override
     public void onDismiss(DialogInterface dialogInterface) {
+      trackSelectionDialog = null;
       downloadHelper.release();
     }
 
@@ -293,6 +305,24 @@ public class DownloadCenter {
         downloadHelper.release();
         return;
       }
+
+      Tracks tracks = downloadHelper.getTracks(/* periodIndex= */ 0);
+      if (!TrackSelectionDialog.willHaveContent(tracks)) {
+        Log.d(TAG, "No dialog content. Downloading entire stream.");
+        startDownload();
+        downloadHelper.release();
+        return;
+      }
+      trackSelectionDialog =
+          TrackSelectionDialog.createForTracksAndParameters(
+              /* titleId= */ androidx.media3.exoplayer.R.string.exo_download_description,
+              tracks,
+              DownloadHelper.DEFAULT_TRACK_SELECTOR_PARAMETERS_WITHOUT_CONTEXT,
+              /* allowAdaptiveSelections= */ false,
+              /* allowMultipleOverrides= */ true,
+              /* onTracksSelectedListener= */ this,
+              /* onDismissListener= */ this);
+      trackSelectionDialog.show(fragmentManager, /* tag= */ null);
     }
 
     /**
@@ -316,7 +346,7 @@ public class DownloadCenter {
 
     private void startDownload(DownloadRequest downloadRequest) {
       DownloadService.sendAddDownload(
-          context, SongDownloadService.class, downloadRequest, /* foreground= */ false);
+          context, DemoDownloadService.class, downloadRequest, /* foreground= */ false);
     }
 
     private DownloadRequest buildDownloadRequest() {
@@ -328,14 +358,16 @@ public class DownloadCenter {
   }
 
   /** Downloads a Widevine offline license in a background thread. */
-  private static final class WidevineOfflineLicenseFetchTask extends AsyncTask<Void, Void, Void> {
+  private static final class WidevineOfflineLicenseFetchTask {
 
     private final Format format;
     private final MediaItem.DrmConfiguration drmConfiguration;
     private final DataSource.Factory dataSourceFactory;
     private final StartDownloadDialogHelper dialogHelper;
     private final DownloadHelper downloadHelper;
+    private final ExecutorService executorService;
 
+    @Nullable Future<?> future;
     @Nullable private byte[] keySetId;
     @Nullable private DrmSession.DrmSessionException drmSessionException;
 
@@ -345,6 +377,8 @@ public class DownloadCenter {
         DataSource.Factory dataSourceFactory,
         StartDownloadDialogHelper dialogHelper,
         DownloadHelper downloadHelper) {
+      checkState(drmConfiguration.scheme.equals(C.WIDEVINE_UUID));
+      this.executorService = Executors.newSingleThreadExecutor();
       this.format = format;
       this.drmConfiguration = drmConfiguration;
       this.dataSourceFactory = dataSourceFactory;
@@ -352,32 +386,41 @@ public class DownloadCenter {
       this.downloadHelper = downloadHelper;
     }
 
-    @Override
-    protected Void doInBackground(Void... voids) {
-      OfflineLicenseHelper offlineLicenseHelper =
-          OfflineLicenseHelper.newWidevineInstance(
-              drmConfiguration.licenseUri.toString(),
-              drmConfiguration.forceDefaultLicenseUri,
-              dataSourceFactory,
-              drmConfiguration.licenseRequestHeaders,
-              new DrmSessionEventListener.EventDispatcher());
-      try {
-        keySetId = offlineLicenseHelper.downloadLicense(format);
-      } catch (DrmSession.DrmSessionException e) {
-        drmSessionException = e;
-      } finally {
-        offlineLicenseHelper.release();
+    public void cancel() {
+      if (future != null) {
+        future.cancel(/* mayInterruptIfRunning= */ false);
       }
-      return null;
     }
 
-    @Override
-    protected void onPostExecute(Void aVoid) {
-      if (drmSessionException != null) {
-        dialogHelper.onOfflineLicenseFetchedError(drmSessionException);
-      } else {
-        dialogHelper.onOfflineLicenseFetched(downloadHelper, checkNotNull(keySetId));
-      }
+    public void execute() {
+      future =
+          executorService.submit(
+              () -> {
+                OfflineLicenseHelper offlineLicenseHelper =
+                    OfflineLicenseHelper.newWidevineInstance(
+                        drmConfiguration.licenseUri.toString(),
+                        drmConfiguration.forceDefaultLicenseUri,
+                        dataSourceFactory,
+                        drmConfiguration.licenseRequestHeaders,
+                        new DrmSessionEventListener.EventDispatcher());
+                try {
+                  keySetId = offlineLicenseHelper.downloadLicense(format);
+                } catch (DrmSession.DrmSessionException e) {
+                  drmSessionException = e;
+                } finally {
+                  offlineLicenseHelper.release();
+                  new Handler(Looper.getMainLooper())
+                      .post(
+                          () -> {
+                            if (drmSessionException != null) {
+                              dialogHelper.onOfflineLicenseFetchedError(drmSessionException);
+                            } else {
+                              dialogHelper.onOfflineLicenseFetched(
+                                  downloadHelper, checkNotNull(keySetId));
+                            }
+                          });
+                }
+              });
     }
   }
 }
