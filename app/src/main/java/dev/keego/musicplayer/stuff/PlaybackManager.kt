@@ -2,7 +2,6 @@ package dev.keego.musicplayer.stuff
 
 import android.content.ComponentName
 import android.content.Context
-import android.media.session.PlaybackState
 import androidx.annotation.OptIn
 import androidx.collection.LruCache
 import androidx.core.net.toUri
@@ -19,9 +18,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import dev.keego.musicplayer.local.playlist.PlaylistWithTracksTbl
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.noti.PlaybackService
-import dev.keego.musicplayer.remote.Streamable
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
-import dev.keego.musicplayer.ui.PlayerVMEvent
 import dev.keego.musicplayer.ui.search.SearchEntry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -30,20 +27,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import org.schabi.newpipe.extractor.stream.StreamInfoItem
-import org.schabi.newpipe.extractor.stream.StreamType
 import timber.log.Timber
-import kotlin.math.min
 
 data class PlayerState(
     val hasNext: Boolean = false,
     val hasPrevious: Boolean = false,
 )
 
-class PlayerPlaybackManager(
+class PlaybackManager(
     private val coroutineScope: CoroutineScope,
     private val onlineSongRepository: OnlineSongRepository,
     private val onException: (Throwable) -> Unit,
+    private val onRemoteSongResolved: (Song) -> Unit,
 ) {
     private val playbackQueue = mutableListOf<String>()
     private val streamMetadataCache = LruCache<String, Song>(10)
@@ -120,9 +115,12 @@ class PlayerPlaybackManager(
     private suspend fun prepareNextSong() {
         if (playbackQueue.isEmpty()) return
         val song = streamMetadataCache.get(playbackQueue[0]) ?: run {
-            fetchAndCacheStreamInfo()
+            fetchAndCacheStreamInfo()?.also {
+                onRemoteSongResolved(it)
+            }
         }
         if (song == null) return
+        if (playbackQueue.isEmpty()) return
         playbackQueue.removeAt(0)
         val mediaItem = MediaItem.Builder()
             .setUri(song.getStreamUri())
@@ -193,4 +191,6 @@ class PlayerPlaybackManager(
             it.content
         })
     }
+
+    val currentMediaItem: MediaItem? get() = player!!.currentMediaItem
 }

@@ -1,33 +1,61 @@
 package dev.keego.musicplayer.ui.player
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.ShuffleOn
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.VolumeDown
 import androidx.compose.material.icons.filled.VolumeMute
 import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -39,23 +67,33 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.vstd.base_sdk_view.base.utils.toast
 import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.noti.DownloadTracker
+import dev.keego.musicplayer.noti.toggleDownload
+import dev.keego.musicplayer.stuff.LocalActivity
 import dev.keego.musicplayer.stuff.PlayerState
 import dev.keego.musicplayer.stuff.playbackAsState
 import dev.keego.musicplayer.stuff.progressAsState
 import dev.keego.musicplayer.stuff.progressMsAsState
 import dev.keego.musicplayer.ui.UiState
+import dev.keego.musicplayer.ui.lyric.browse_lyrics_
 import kotlinx.coroutines.delay
+import timber.log.Timber
 
 @Composable
 fun PlayerScreen(
     song: Song,
     player: Player,
+    mediaItem: MediaItem?,
+    lyricViewModel: LyricViewModel,
     playerState: PlayerState,
+    downloadTracker: DownloadTracker,
     onDismiss: () -> Unit,
 ) {
     Dialog(
@@ -63,7 +101,7 @@ fun PlayerScreen(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface {
-            PlayerScreenContent(song, player, playerState, onDismiss)
+            PlayerScreenContent(song, player, mediaItem, playerState, lyricViewModel, downloadTracker, onDismiss)
         }
     }
 }
@@ -72,15 +110,25 @@ fun PlayerScreen(
 private fun PlayerScreenContent(
     song: Song,
     player: Player,
+    mediaItem: MediaItem?,
     playerState: PlayerState,
+    lyricViewModel: LyricViewModel,
+    downloadTracker: DownloadTracker,
     onClickClose: () -> Unit,
 ) {
+    val activity = LocalActivity.current
     var isFavorite by remember { mutableStateOf(false) }
     var volume by remember { mutableFloatStateOf(80f) }
+    var showDialogBrowseLyrics by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        lyricViewModel.queryLyric(song)
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
         // Header
@@ -105,11 +153,42 @@ private fun PlayerScreenContent(
                 )
             }
 
-            IconButton(onClick = { /* Show more options */ }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More"
-                )
+            var expanded by remember { mutableStateOf(false) }
+            Box(contentAlignment = Alignment.CenterEnd) {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More"
+                    )
+                }
+                DropdownMenu(expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "Download",
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Download,
+                                contentDescription = "Download"
+                            )
+                        },
+                        onClick = {
+                            expanded = false
+                            Timber.d(mediaItem?.localConfiguration?.uri.toString())
+                            mediaItem?.let {
+                                downloadTracker.toggleDownload(
+                                    activity!!.applicationContext,
+                                    (activity as FragmentActivity).supportFragmentManager,
+                                    mediaItem,
+                                )
+                            } ?: run {
+                                activity.toast("mediaItem is null")
+                            }
+                        }
+                    )
+                }
             }
         }
 
@@ -231,6 +310,20 @@ private fun PlayerScreenContent(
                 }
             }
         }
+        _lyric(
+            player = player,
+            lyricViewModel = lyricViewModel,
+        ) {
+            showDialogBrowseLyrics = true
+        }
+    }
+
+    if (showDialogBrowseLyrics) {
+        browse_lyrics_(
+            song = song,
+            onDismiss = { showDialogBrowseLyrics = false },
+            onSubmit = { /*TODO*/ }
+        )
     }
 }
 

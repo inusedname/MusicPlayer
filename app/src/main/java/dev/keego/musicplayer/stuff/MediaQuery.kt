@@ -7,6 +7,7 @@ import android.net.Uri
 import android.provider.MediaStore
 import dev.keego.musicplayer.model.Song
 import timber.log.Timber
+import androidx.core.net.toUri
 
 object MediaQuery {
     fun querySongs(context: Context): List<Song> {
@@ -46,7 +47,7 @@ object MediaQuery {
                         duration = duration,
                         data = uri,
                         thumbnailUri = ContentUris.withAppendedId(
-                            Uri.parse("content://media/external/audio/albumart"),
+                            "content://media/external/audio/albumart".toUri(),
                             albumId
                         ).toString()
                     )

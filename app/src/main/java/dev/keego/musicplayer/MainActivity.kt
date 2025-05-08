@@ -1,7 +1,6 @@
 package dev.keego.musicplayer
 
 import android.content.BroadcastReceiver
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -33,24 +32,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
 import dev.keego.musicplayer.config.theme.MusicPlayerTheme
-import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.noti.DemoUtil
 import dev.keego.musicplayer.noti.PlaybackService
-import dev.keego.musicplayer.stuff.PlayerPlaybackManager
-import dev.keego.musicplayer.stuff.currentSongAsState
 import dev.keego.musicplayer.ui.PlayerVMEvent
 import dev.keego.musicplayer.ui.PlayerViewModel
 import dev.keego.musicplayer.ui.home.AppBottomNavigation
@@ -66,9 +59,13 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 @AndroidEntryPoint
-class MainActivity : androidx.activity.ComponentActivity() {
+class MainActivity : FragmentActivity() {
     private val shareViewModel by viewModels<PlayerViewModel>()
     private val playbackManager by lazy { shareViewModel.playbackManager }
+
+    private val downloadTracker by lazy {
+        DemoUtil.getDownloadTracker(this)
+    }
 
     override fun onDestroy() {
         super.onDestroy()
@@ -210,6 +207,9 @@ class MainActivity : androidx.activity.ComponentActivity() {
                             song = currentSong!!,
                             player = player!!,
                             playerState = playerState,
+                            mediaItem = playbackManager.currentMediaItem,
+                            lyricViewModel = lyricViewModel,
+                            downloadTracker = downloadTracker,
                         ) {
                             showFullScreenPlayer = false
                         }
