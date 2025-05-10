@@ -191,22 +191,16 @@ private fun PlayerScreenContent(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Album Art
-        Box(
+        AsyncImage(
+            model = song.thumbnailUri,
+            contentDescription = null,
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.Center
-        ) {
-            AsyncImage(
-                model = song.thumbnailUri,
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .aspectRatio(1f)
-                    .clip(MaterialTheme.shapes.large),
-                contentScale = ContentScale.Crop
-            )
-        }
+                .align(Alignment.CenterHorizontally)
+                .fillMaxWidth(0.75f)
+                .aspectRatio(1f)
+                .clip(MaterialTheme.shapes.large),
+            contentScale = ContentScale.Crop
+        )
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -217,7 +211,7 @@ private fun PlayerScreenContent(
         ) {
             Text(
                 text = song.title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleMedium,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -225,7 +219,7 @@ private fun PlayerScreenContent(
 
             Text(
                 text = song.artist,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
@@ -239,8 +233,7 @@ private fun PlayerScreenContent(
         _controller(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .weight(1f),
+                .padding(horizontal = 16.dp),
             player = player,
             playerState = playerState,
         )
