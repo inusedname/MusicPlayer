@@ -1,9 +1,7 @@
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
@@ -19,40 +17,48 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import dev.keego.musicplayer.Route
+import dev.keego.musicplayer.domain.PreparedPlaylist
+import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.ui.MockData
+import dev.keego.musicplayer.ui.my_space.MySpaceViewModel
 
-@Preview
 @Composable
-fun MySpaceScreen2() {
-    val downloadedSongs = listOf(
-        Song("Blinding Lights", "The Weeknd"),
-        Song("Save Your Tears", "The Weeknd"),
-        Song("Starboy", "The Weeknd ft. Daft Punk")
-    )
-    val playlists = listOf(
-        Playlist("My Favorites", 24),
-        Playlist("Workout Mix", 18),
-        Playlist("Chill Vibes", 32)
+fun MySpaceScreen(navController: NavController) {
+    val viewModel = hiltViewModel<MySpaceViewModel>()
+    val playlists by viewModel.playlists.collectAsState()
+
+    val downloadedSongs = listOf<Song>(
+        Song(id = "1", album = "", "Hello", 100, "Adele", "", data = "")
     )
     var offlineMode by remember { mutableStateOf(false) }
     var dataSaver by remember { mutableStateOf(false) }
     var autoDownload by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF18141C))) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopBar()
+
+    Scaffold(
+        topBar = { TopBar {
+            navController.navigate(Route.Setting)
+        } },
+        containerColor = Color(0xFF121212),
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             LazyColumn(modifier = Modifier.weight(1f)) {
                 item { DownloadedSongsSection(downloadedSongs) }
-                item { PlaylistsSection(playlists) }
+                item { PlaylistsSection(playlists) {
+                    navController.navigate(Route.Playlist(it))
+                } }
                 item { SettingsSection(offlineMode, { offlineMode = it }, dataSaver, { dataSaver = it }, autoDownload, { autoDownload = it }) }
                 item { Spacer(modifier = Modifier.height(80.dp)) } // For bottom bar spacing
             }
         }
-        BottomBar()
     }
 }
 
 @Composable
-fun TopBar() {
+private fun TopBar(onSettingClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -61,17 +67,19 @@ fun TopBar() {
     ) {
         Text("My Space", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
         Spacer(modifier = Modifier.weight(1f))
-        Icon(
-            painter = painterResource(android.R.drawable.ic_menu_manage),
-            contentDescription = "Settings",
-            tint = Color.White,
-            modifier = Modifier.size(24.dp)
-        )
+        IconButton(onClick = onSettingClick) {
+            Icon(
+                painter = painterResource(android.R.drawable.ic_menu_manage),
+                contentDescription = "Settings",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
+        }
     }
 }
 
 @Composable
-fun DownloadedSongsSection(songs: List<Song>) {
+private fun DownloadedSongsSection(songs: List<Song>) {
     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -109,7 +117,7 @@ fun DownloadedSongsSection(songs: List<Song>) {
 }
 
 @Composable
-fun SongRow(song: Song) {
+private fun SongRow(song: Song) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth()
@@ -139,7 +147,7 @@ fun SongRow(song: Song) {
 }
 
 @Composable
-fun PlaylistsSection(playlists: List<Playlist>) {
+private fun PlaylistsSection(playlists: List<PreparedPlaylist>, onClick: (PreparedPlaylist) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -157,7 +165,7 @@ fun PlaylistsSection(playlists: List<Playlist>) {
         }
         Spacer(modifier = Modifier.height(12.dp))
         playlists.forEach { playlist ->
-            PlaylistRow(playlist)
+            PlaylistRow(playlist) { onClick(playlist) }
             Spacer(modifier = Modifier.height(8.dp))
         }
         Spacer(modifier = Modifier.height(18.dp))
@@ -165,10 +173,10 @@ fun PlaylistsSection(playlists: List<Playlist>) {
 }
 
 @Composable
-fun PlaylistRow(playlist: Playlist) {
+private fun PlaylistRow(playlist: PreparedPlaylist, onClick: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
         Box(
             modifier = Modifier
@@ -181,21 +189,13 @@ fun PlaylistRow(playlist: Playlist) {
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(playlist.title, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${playlist.trackCount} tracks", color = Color(0xFFB3B3B3), fontSize = 13.sp)
-        }
-        IconButton(onClick = {}) {
-            Icon(
-                painter = painterResource(android.R.drawable.ic_media_play),
-                contentDescription = "Play",
-                tint = Color.White,
-                modifier = Modifier.size(22.dp)
-            )
+            Text("${playlist.tracks.size} tracks", color = Color(0xFFB3B3B3), fontSize = 13.sp)
         }
     }
 }
 
 @Composable
-fun SettingsSection(
+private fun SettingsSection(
     offlineMode: Boolean, onOfflineModeChange: (Boolean) -> Unit,
     dataSaver: Boolean, onDataSaverChange: (Boolean) -> Unit,
     autoDownload: Boolean, onAutoDownloadChange: (Boolean) -> Unit
@@ -234,7 +234,7 @@ fun SettingsSection(
 }
 
 @Composable
-fun SettingToggle(title: String, description: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SettingToggle(title: String, description: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -248,70 +248,3 @@ fun SettingToggle(title: String, description: String, checked: Boolean, onChecke
         Switch(checked = checked, onCheckedChange = onCheckedChange, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFB18AFF)))
     }
 }
-
-@Composable
-fun BoxScope.BottomBar() {
-    Column(modifier = Modifier.align(Alignment.BottomCenter)) {
-        // Mini player
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF232029))
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF18141C))
-            ) {
-                // Placeholder for album art
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Blinding Lights", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("The Weeknd", color = Color(0xFFB3B3B3), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            IconButton(onClick = {}) {
-                Icon(
-                    painter = painterResource(android.R.drawable.ic_media_play),
-                    contentDescription = "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-        }
-        // Navigation bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF18141C))
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            NavBarItem("Discover", selected = false)
-            NavBarItem("Search", selected = false)
-            NavBarItem("My Space", selected = true)
-        }
-    }
-}
-
-@Composable
-fun NavBarItem(label: String, selected: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(
-            painter = painterResource(android.R.drawable.ic_menu_search),
-            contentDescription = label,
-            tint = if (selected) Color(0xFFB18AFF) else Color(0xFFB3B3B3),
-            modifier = Modifier.size(22.dp)
-        )
-        Text(label, color = if (selected) Color(0xFFB18AFF) else Color(0xFFB3B3B3), fontSize = 12.sp)
-    }
-}
-
-// Data models
-
-data class Song(val title: String, val artist: String)
-data class Playlist(val title: String, val trackCount: Int) 

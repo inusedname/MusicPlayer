@@ -15,6 +15,7 @@ import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.FutureCallback
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.MoreExecutors
+import dev.keego.musicplayer.domain.PreparedPlaylist
 import dev.keego.musicplayer.local.playlist.PlaylistWithTracksTbl
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.noti.PlaybackService
@@ -190,6 +191,10 @@ class PlaybackManager(
         playbackQueue.addAll(playlistWithTracksTbl.tracks.map {
             it.content
         })
+    }
+
+    fun playList(playlist: PreparedPlaylist) {
+        // TODO
     }
 
     val currentMediaItem: MediaItem? get() = player!!.currentMediaItem

@@ -32,7 +32,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         db.compileStatement(
-                            "INSERT INTO Playlist (name) VALUES ('Favourites'), ('Listen History')"
+                            "INSERT INTO Playlist (name, provider) VALUES ('Favourites', 'LOCAL'), ('Listen History', 'LOCAL')"
                         ).executeInsert()
                     }
                 })

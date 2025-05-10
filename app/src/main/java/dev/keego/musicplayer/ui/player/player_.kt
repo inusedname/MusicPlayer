@@ -76,11 +76,7 @@ import com.vstd.base_sdk_view.base.utils.toast
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.noti.DownloadTracker
 import dev.keego.musicplayer.noti.toggleDownload
-import dev.keego.musicplayer.stuff.LocalActivity
-import dev.keego.musicplayer.stuff.PlayerState
-import dev.keego.musicplayer.stuff.playbackAsState
-import dev.keego.musicplayer.stuff.progressAsState
-import dev.keego.musicplayer.stuff.progressMsAsState
+import dev.keego.musicplayer.stuff.*
 import dev.keego.musicplayer.ui.UiState
 import dev.keego.musicplayer.ui.lyric.browse_lyrics_
 import kotlinx.coroutines.delay
@@ -544,17 +540,5 @@ fun _controller(modifier: Modifier = Modifier, player: Player, playerState: Play
                 )
             }
         }
-    }
-}
-
-private fun millisToHHmmSS(millis: Long): String {
-    val seconds = (millis / 1000) % 60
-    val minutes = (millis / (1000 * 60)) % 60
-    val hours = (millis / (1000 * 60 * 60)) % 24
-
-    return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format("%02d:%02d", minutes, seconds)
     }
 }

@@ -1,5 +1,6 @@
 package dev.keego.musicplayer
 
+import MySpaceScreen
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -40,8 +41,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import dagger.hilt.android.AndroidEntryPoint
 import dev.keego.musicplayer.config.theme.MusicPlayerTheme
+import dev.keego.musicplayer.domain.PreparedPlaylist
 import dev.keego.musicplayer.noti.DemoUtil
 import dev.keego.musicplayer.noti.PlaybackService
 import dev.keego.musicplayer.ui.PlayerVMEvent
@@ -51,12 +54,15 @@ import dev.keego.musicplayer.ui.home.HomeScreen
 import dev.keego.musicplayer.ui.home._dockedPlayer
 import dev.keego.musicplayer.ui.player.LyricViewModel
 import dev.keego.musicplayer.ui.player.PlayerScreen
+import dev.keego.musicplayer.ui.playlist.PlaylistScreen
 import dev.keego.musicplayer.ui.search.SearchScreen
 import dev.keego.musicplayer.ui.setting.setting_
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import dev.keego.musicplayer.ui.navigation.PreparedPlaylistNavType
+import kotlin.reflect.typeOf
 
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
@@ -115,6 +121,10 @@ class MainActivity : FragmentActivity() {
                                     playerError = event.error
                                     scope.launch { delay(1500); playerError = null }
                                 }
+
+                                is PlayerVMEvent.PlayList -> {
+                                    playbackManager.playList(event.playlist)
+                                }
                             }
                         }
                     }
@@ -158,8 +168,23 @@ class MainActivity : FragmentActivity() {
                             composable<Route.Search>() {
                                 SearchScreen(shareViewModel)
                             }
-                            composable<Route.Library>() {
+                            composable<Route.Setting>() {
                                 setting_()
+                            }
+                            composable<Route.MySpace>() {
+                                MySpaceScreen(homeNavController)
+                            }
+                            composable<Route.Playlist>(
+                                typeMap = mapOf(
+                                    typeOf<PreparedPlaylist>() to PreparedPlaylistNavType()
+                                )
+                            ) {
+                                val route = it.toRoute<Route.Playlist>()
+                                PlaylistScreen(
+                                    playlist = route.preparedPlaylist,
+                                    navController = homeNavController,
+                                    playerViewModel = shareViewModel,
+                                )
                             }
                         }
 

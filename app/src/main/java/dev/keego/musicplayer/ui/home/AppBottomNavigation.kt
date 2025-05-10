@@ -2,9 +2,7 @@ package dev.keego.musicplayer.ui.home
 
 import androidx.annotation.OptIn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -33,7 +31,7 @@ fun AppBottomNavigation(navController: NavController) = @Composable {
     val routes = listOf(
         TopRoute("Home", Route.Home, Icons.Outlined.Home),
         TopRoute("Search", Route.Search, Icons.Outlined.Search),
-        TopRoute("Library", Route.Library, Icons.Outlined.Folder)
+        TopRoute("My space", Route.MySpace, Icons.Outlined.Book)
     )
 
     NavigationBar {

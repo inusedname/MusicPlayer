@@ -1,5 +1,6 @@
 package dev.keego.musicplayer
 
+import dev.keego.musicplayer.domain.PreparedPlaylist
 import kotlinx.serialization.Serializable
 
 sealed class Route {
@@ -11,5 +12,11 @@ sealed class Route {
     object Search : Route()
 
     @Serializable
-    object Library : Route()
+    object MySpace : Route()
+
+    @Serializable
+    object Setting : Route()
+
+    @Serializable
+    data class Playlist(val preparedPlaylist: PreparedPlaylist) : Route()
 }

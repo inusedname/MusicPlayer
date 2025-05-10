@@ -3,7 +3,9 @@ package dev.keego.musicplayer.model
 import android.net.Uri
 import androidx.core.net.toUri
 import dev.keego.musicplayer.remote.Streamable
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Song(
     val id: String,
     val album: String,
