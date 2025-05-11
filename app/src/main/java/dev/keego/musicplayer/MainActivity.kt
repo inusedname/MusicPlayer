@@ -177,9 +177,8 @@ class MainActivity : FragmentActivity() {
                                     .align(Alignment.BottomCenter)
                                     .fillMaxWidth(),
                                 player = player,
+                                playerState = playerState,
                                 song = currentSong!!,
-                                favorite = isFavorite,
-                                onFavorite = { isFavorite = !isFavorite },
                                 onClick = { showFullScreenPlayer = true }
                             )
                         }

@@ -44,7 +44,7 @@ object MediaQuery {
                         album = albumTitle,
                         title = title,
                         artist = artist,
-                        duration = duration,
+                        duration = (duration / 1000).toInt(),
                         data = uri,
                         thumbnailUri = ContentUris.withAppendedId(
                             "content://media/external/audio/albumart".toUri(),

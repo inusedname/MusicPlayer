@@ -1,36 +1,24 @@
 package dev.keego.musicplayer.stuff
 
-import android.content.ComponentName
-import android.content.Context
-import androidx.annotation.OptIn
 import androidx.collection.LruCache
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
-import com.google.common.util.concurrent.FutureCallback
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.MoreExecutors
 import dev.keego.musicplayer.domain.PreparedPlaylist
 import dev.keego.musicplayer.local.playlist.PlaylistWithTracksTbl
 import dev.keego.musicplayer.model.Song
-import dev.keego.musicplayer.noti.PlaybackService
 import dev.keego.musicplayer.remote.search.OnlineSongRepository
 import dev.keego.musicplayer.ui.search.SearchEntry
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
 data class PlayerState(
+    val loading: Boolean = true,
     val hasNext: Boolean = false,
     val hasPrevious: Boolean = false,
 )
@@ -61,14 +49,17 @@ class PlaybackManager(
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 super.onMediaItemTransition(mediaItem, reason)
-                (mediaItem?.localConfiguration?.uri?.toString() ?: "").let {
-                    currentSong.value = streamMetadataCache[it]
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                    (mediaItem?.localConfiguration?.uri?.toString())?.let {
+                        currentSong.value = streamMetadataCache[it]
+                        currentState.value = currentState.value.copy(loading = true)
+                    }
                 }
             }
 
             override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                 super.onTimelineChanged(timeline, reason)
-                currentState.value = PlayerState(
+                currentState.value = currentState.value.copy(
                     hasNext = player.hasNextMediaItem(),
                     hasPrevious = player.hasPreviousMediaItem()
                 )
@@ -76,6 +67,9 @@ class PlaybackManager(
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 super.onPlaybackStateChanged(playbackState)
+                if (playbackState == Player.STATE_READY && currentState.value.loading) {
+                    currentState.value = currentState.value.copy(loading = false)
+                }
             }
         })
 
@@ -126,11 +120,17 @@ class PlaybackManager(
         }.getOrNull()
     }
 
-    fun addSingle(searchEntry: SearchEntry) {
+    suspend fun addSingle(searchEntry: SearchEntry) {
+        if (player.currentMediaItem == null) {
+            playImmediately(searchEntry)
+            return
+        }
         playbackQueue.add(searchEntry.url)
     }
 
     suspend fun playImmediately(searchEntry: SearchEntry) {
+        treatPlayImmediately(searchEntry, null)
+
         playbackQueue.add(searchEntry.url)
         player.clearMediaItems()
         prepareNextSong()
@@ -138,6 +138,8 @@ class PlaybackManager(
     }
 
     suspend fun playImmediately(song: Song) {
+        treatPlayImmediately(null, song)
+
         playbackQueue.add(song.getStreamUri().toString())
         streamMetadataCache.put(song.getStreamUri().toString(), song)
         player.clearMediaItems()
@@ -165,6 +167,18 @@ class PlaybackManager(
 
     fun playList(playlist: PreparedPlaylist) {
         // TODO
+    }
+
+    private fun treatPlayImmediately(searchEntry: SearchEntry?, song: Song?) {
+        Timber.d(searchEntry.toString())
+        currentSong.value = song ?: Song.mock().copy(
+            title = searchEntry?.title ?: "",
+            artist = searchEntry?.artist ?: "",
+            duration = searchEntry?.duration ?: 0,
+            thumbnailUri = searchEntry?.thumbnailUrl,
+            data = ""
+        )
+        currentState.value = currentState.value.copy(loading = true)
     }
 
     val currentMediaItem: MediaItem? get() = player.currentMediaItem

@@ -22,7 +22,7 @@ class LyricRepository(
                 song.title,
                 song.artist,
                 song.album.ifEmpty { song.title },
-                (song.duration / 1000).toInt()
+                song.duration.toInt()
             )
             if (response.isSuccessful) {
                 val body = response.body()!!

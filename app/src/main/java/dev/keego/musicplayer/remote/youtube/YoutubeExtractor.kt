@@ -62,7 +62,7 @@ class YoutubeExtractor(okHttpClient: OkHttpClient) {
                         id = streamExtractor.url,
                         album = "",
                         title = streamExtractor.name,
-                        duration = streamExtractor.length * 1000,
+                        duration = streamExtractor.length.toInt(),
                         artist = streamExtractor.uploaderName.substringBefore(" - Topic"),
                         thumbnailUri = streamExtractor.thumbnails.maxByOrNull { it.height }?.url,
                         data = it.content

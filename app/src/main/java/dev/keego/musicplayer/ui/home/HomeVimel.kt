@@ -9,9 +9,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.keego.musicplayer.model.Song
-import dev.keego.musicplayer.remote.LyricRepository
 import dev.keego.musicplayer.stuff.MediaQuery
-import dev.keego.musicplayer.stuff.updateTo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -22,7 +20,6 @@ import javax.inject.Inject
 @SuppressLint("StaticFieldLeak")
 class HomeVimel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val lyricRepository: LyricRepository,
 ) :
     ViewModel() {
     val songs = MutableStateFlow<List<Song>>(emptyList())

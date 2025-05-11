@@ -19,26 +19,8 @@ class MainApplication: Application() {
         Timber.plant(object : Timber.DebugTree() {
 
             override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-                super.log(priority, tag, ">>" + message, t)
+                super.log(priority, tag, ">> $message", t)
             }
         })
-
-        Timber.d(Json.encodeToString(PreparedPlaylist(
-            id = 1,
-            title = "adwdw",
-            coverUri = "adwdwda",
-            tracks = listOf(
-                Song(
-                    id = "1",
-                    album = "",
-                    title = "",
-                    duration = 100,
-                    artist = "",
-                    thumbnailUri = "",
-                    data = ""
-                )
-            ),
-            provider = Provider.LOCAL
-        )))
     }
 }

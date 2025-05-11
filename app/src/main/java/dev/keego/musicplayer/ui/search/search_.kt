@@ -26,9 +26,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,6 +49,7 @@ import coil.compose.AsyncImage
 import com.vstd.base_sdk_view.base.utils.toast
 import dev.keego.musicplayer.ui.PlayerViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(playerViewModel: PlayerViewModel) {
     var searchQuery by remember { mutableStateOf("") }
@@ -67,106 +70,102 @@ fun SearchScreen(playerViewModel: PlayerViewModel) {
         playerViewModel.playNext(item)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-    ) {
-        Text(
-            text = "Search",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
-        )
+    Scaffold(topBar = {
+        TopAppBar(title = {
+            Text(text = "Search")
+        })
+    }) { paddingValues ->
+        Column(Modifier.padding(paddingValues).padding(horizontal = 16.dp)) {
+            MySearchBar(searchQuery, onQueryChange = {
+                searchQuery = it
+            }, viewModel, ::handleSearch)
 
-        MySearchBar(searchQuery, onQueryChange = {
-            searchQuery = it
-        }, viewModel, ::handleSearch)
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        if (resultUiState.searchState is UiState.Success && searchQuery.isNotEmpty()) {
-            when (val searchState = resultUiState.searchState) {
-                is UiState.Loading -> {
-                    // Show loading indicator
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-
-                is UiState.Success -> {
-                    // Show search results
-                    SearchResultsList(searchState.value, ::onItemClick, ::addToPlayNext)
-                }
-
-                is UiState.Error -> {
-                    // Show error message
-                    Text(
-                        text = "Error: ${searchState.exception.message}",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-
-                is UiState.Idle -> {}
-            }
-        } else if (searchQuery.isEmpty()) {
-            // Search history when not actively searching
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Recent Searches",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                }
-
-                LazyColumn {
-                    items(resultUiState.searchHistories) { query ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    searchQuery = query
-                                    handleSearch(query)
-                                }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+            if (resultUiState.searchState is UiState.Success && searchQuery.isNotEmpty()) {
+                when (val searchState = resultUiState.searchState) {
+                    is UiState.Loading -> {
+                        // Show loading indicator
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.History,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(
-                                text = query,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
-                            )
-                            IconButton(
-                                onClick = { /* Remove from history */ },
-                                modifier = Modifier.size(32.dp)
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    is UiState.Success -> {
+                        // Show search results
+                        SearchResultsList(searchState.value, ::onItemClick, ::addToPlayNext)
+                    }
+
+                    is UiState.Error -> {
+                        // Show error message
+                        Text(
+                            text = "Error: ${searchState.exception.message}",
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+
+                    is UiState.Idle -> {}
+                }
+            } else if (searchQuery.isEmpty()) {
+                // Search history when not actively searching
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Recent Searches",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+
+                    LazyColumn {
+                        items(resultUiState.searchHistories) { query ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        searchQuery = query
+                                        handleSearch(query)
+                                    }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Clear,
-                                    contentDescription = "Remove",
+                                    imageVector = Icons.Default.History,
+                                    contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp)
                                 )
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text(
+                                    text = query,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { /* Remove from history */ },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Remove",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
                             }
                         }
                     }

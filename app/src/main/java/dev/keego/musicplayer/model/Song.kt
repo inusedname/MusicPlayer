@@ -10,7 +10,7 @@ data class Song(
     val id: String,
     val album: String,
     val title: String,
-    val duration: Long,
+    val duration: Int,
     val artist: String,
     val thumbnailUri: String?,
     val data: String,
@@ -20,5 +20,19 @@ data class Song(
     }
     override fun getStreamUri(): Uri {
         return data.toUri()
+    }
+
+    companion object {
+        fun mock(): Song {
+            return Song(
+                id = "1",
+                album = "",
+                title = "",
+                duration = 100,
+                artist = "",
+                thumbnailUri = "",
+                data = ""
+            )
+        }
     }
 }

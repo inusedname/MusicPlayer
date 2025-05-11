@@ -27,6 +27,7 @@ import dev.keego.musicplayer.domain.PreparedPlaylist
 import dev.keego.musicplayer.model.Song
 import dev.keego.musicplayer.ui.PlayerViewModel
 import dev.keego.musicplayer.ui.search.Provider
+import dev.keego.musicplayer.ui.search.formatDuration
 
 /**
  * screen definition:
@@ -348,13 +349,6 @@ private fun SongItem(song: Song, onClick: () -> Unit) {
             modifier = Modifier.padding(horizontal = 8.dp)
         )
     }
-}
-
-private fun formatDuration(durationMillis: Long): String {
-    val totalSeconds = durationMillis / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format("%d:%02d", minutes, seconds)
 }
 
 @Preview(showBackground = true)

@@ -36,6 +36,7 @@ import androidx.media3.common.SimpleBasePlayer
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.stuff.PlayerState
 import dev.keego.musicplayer.stuff.playbackAsState
 import dev.keego.musicplayer.stuff.progressAsState
 
@@ -44,8 +45,7 @@ fun _dockedPlayer(
     modifier: Modifier = Modifier,
     player: Player,
     song: Song,
-    favorite: Boolean,
-    onFavorite: () -> Unit,
+    playerState: PlayerState?,
     onClick: () -> Unit,
 ) {
     val progress by player.progressAsState()
@@ -58,13 +58,22 @@ fun _dockedPlayer(
             .background(MaterialTheme.colorScheme.background)
             .clickable(onClick = onClick)
     ) {
-        LinearProgressIndicator(
-            progress = progress,
-            modifier = Modifier
-                .height(3.dp)
-                .fillMaxWidth(),
-            strokeCap = StrokeCap.Round
-        )
+        if (playerState?.loading == true) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .height(3.dp)
+                    .fillMaxWidth(),
+                strokeCap = StrokeCap.Round
+            )
+        } else {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .height(3.dp)
+                    .fillMaxWidth(),
+                strokeCap = StrokeCap.Round
+            )
+        }
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(vertical = 10.dp, horizontal = 12.dp)
@@ -91,6 +100,7 @@ fun _dockedPlayer(
                 Text(text = song.artist, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground)
             }
             FilledIconButton(
+                enabled = playerState?.loading == false,
                 onClick = if (isPlaying) player::pause else player::play,
                 modifier = Modifier.size(32.dp)
             ) {
@@ -126,8 +136,7 @@ fun DockedPlayerPreview() {
             data = "data",
             thumbnailUri = null
         ),
-        favorite = false,
-        onFavorite = {},
-        onClick = {}
+        onClick = {},
+        playerState = PlayerState()
     )
 }

@@ -35,7 +35,7 @@ class PlaybackService : MediaSessionService() {
     private val customCommandFavorites = SessionCommand(ACTION_FAVORITES, Bundle.EMPTY)
     private var mediaSession: MediaSession? = null
     private val job = SupervisorJob()
-    private val scope = CoroutineScope(Dispatchers.IO + job)
+    private val scope = CoroutineScope(Dispatchers.Main + job)
 
     @Inject
     lateinit var onlineSongRepository: OnlineSongRepository

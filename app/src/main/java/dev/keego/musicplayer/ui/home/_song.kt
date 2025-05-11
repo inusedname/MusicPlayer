@@ -3,6 +3,7 @@ package dev.keego.musicplayer.ui.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import dev.keego.musicplayer.model.Song
+import dev.keego.musicplayer.ui.search.formatDuration
 
 @Composable
 fun _song(song: Song, onClick: () -> Unit) {
@@ -48,5 +50,13 @@ fun _song(song: Song, onClick: () -> Unit) {
                     .alpha(0.8f)
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            text = formatDuration(song.duration),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .alpha(0.8f)
+                .padding(start = 8.dp)
+        )
     }
 }
