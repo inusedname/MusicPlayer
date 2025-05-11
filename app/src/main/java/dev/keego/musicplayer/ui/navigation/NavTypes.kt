@@ -1,5 +1,6 @@
 package dev.keego.musicplayer.ui.navigation
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.navigation.NavType
 import dev.keego.musicplayer.domain.PreparedPlaylist
@@ -12,10 +13,14 @@ class PreparedPlaylistNavType : NavType<PreparedPlaylist>(isNullableAllowed = fa
     }
 
     override fun parseValue(value: String): PreparedPlaylist {
-        return Json.decodeFromString(value)
+        return Json.decodeFromString(Uri.decode(value))
     }
 
     override fun put(bundle: Bundle, key: String, value: PreparedPlaylist) {
         bundle.putString(key, Json.encodeToString(value))
+    }
+
+    override fun serializeAsValue(value: PreparedPlaylist): String {
+        return Uri.encode(Json.encodeToString(value))
     }
 } 
