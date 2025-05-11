@@ -95,6 +95,17 @@ android {
                 new File(buildDir, "generated/ksp/${variant.name}/kotlin")
         )
     }
+//    Generate compose report
+//    kotlinOptions {
+//        freeCompilerArgs += List.of(
+//                "-P",
+//                "plugin:androidx.compose.compiler.plugins.kotlin:metricsDestination=" +
+//                        "C:\\Users\\nguye\\Documents\\metrics",
+//                "-P",
+//                "plugin:androidx.compose.compiler.plugins.kotlin:reportsDestination=" +
+//                        "C:\\Users\\nguye\\Documents\\reports"
+//        )
+//    }
 }
 
 dependencies {

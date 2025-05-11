@@ -327,7 +327,7 @@ private fun _lyric(
     val lyric by lyricViewModel.lyric.collectAsStateWithLifecycle()
     val lyricTimestamps = remember(lyricUiState) {
         if (lyricUiState == UiState.SUCCESS) {
-            lyric!!.content.keys.toList()
+            lyric?.content?.keys?.toList()
         } else {
             null
         }

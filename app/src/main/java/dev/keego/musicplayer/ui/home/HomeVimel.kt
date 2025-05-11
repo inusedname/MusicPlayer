@@ -36,7 +36,6 @@ class HomeVimel @Inject constructor(
             ) { path, _ ->
                 Timber.d("Scanned $path:")
                 val siu = MediaQuery.querySongs(context)
-                songs.updateTo { siu }
                 songs.value = siu
             }
         }

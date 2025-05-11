@@ -1,32 +1,14 @@
 package dev.keego.musicplayer.ui
 
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.keego.musicplayer.BaseViewModel
 import dev.keego.musicplayer.domain.PreparedPlaylist
-import dev.keego.musicplayer.local.playlist.PlaylistRepository
 import dev.keego.musicplayer.model.Song
-import dev.keego.musicplayer.remote.search.OnlineSongRepository
-import dev.keego.musicplayer.stuff.PlaybackManager
 import dev.keego.musicplayer.ui.search.SearchEntry
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class PlayerViewModel @Inject constructor(
-    private val onlineSongRepository: OnlineSongRepository,
-    private val playlistRepository: PlaylistRepository,
-): BaseViewModel<Unit, PlayerVMEvent>() {
+class PlayerViewModel : BaseViewModel<Unit, PlayerVMEvent>() {
     override fun initialState() = Unit
-
-    val playbackManager by lazy {
-        PlaybackManager(
-            coroutineScope = viewModelScope,
-            onlineSongRepository = onlineSongRepository,
-            onException = ::publishError,
-            onRemoteSongResolved = {},
-        )
-    }
 
     fun playList(preparedPlaylist: PreparedPlaylist) {
         viewModelScope.launch {

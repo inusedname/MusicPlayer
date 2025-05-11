@@ -50,7 +50,7 @@ interface PlaylistActions {
 @Composable
 fun PlaylistScreen(
     playlist: PreparedPlaylist,
-    playerViewModel: PlayerViewModel = hiltViewModel(),
+    playerViewModel: PlayerViewModel,
     navController: NavController,
 ) {
     val actions = remember {

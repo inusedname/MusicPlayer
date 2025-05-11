@@ -20,14 +20,33 @@ import androidx.media3.session.SessionResult
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import dagger.hilt.android.AndroidEntryPoint
 import dev.keego.musicplayer.R
 import dev.keego.musicplayer.local.ExoPlayerExceptionHandler
+import dev.keego.musicplayer.remote.search.OnlineSongRepository
+import dev.keego.musicplayer.stuff.PlaybackManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class PlaybackService : MediaSessionService() {
     private val customCommandFavorites = SessionCommand(ACTION_FAVORITES, Bundle.EMPTY)
     private var mediaSession: MediaSession? = null
+    private val job = SupervisorJob()
+    private val scope = CoroutineScope(Dispatchers.IO + job)
 
-    private val localBroadcastReceiver by lazy { LocalBroadcastManager.getInstance(applicationContext) }
+    @Inject
+    lateinit var onlineSongRepository: OnlineSongRepository
+
+    private lateinit var playbackManager: PlaybackManager
+
+    private val localBroadcastReceiver by lazy {
+        LocalBroadcastManager.getInstance(
+            applicationContext
+        )
+    }
 
     @UnstableApi
     override fun onCreate() {
@@ -63,10 +82,26 @@ class PlaybackService : MediaSessionService() {
             )
         })
 
+        playbackManager = PlaybackManager(
+            coroutineScope = scope,
+            onlineSongRepository = onlineSongRepository,
+            player = player,
+            onException = {
+                localBroadcastReceiver.sendBroadcast(
+                    Intent(INTENT_EXO_PLAYER_EXCEPTION).putExtra(
+                        INTENT_EXO_PLAYER_EXCEPTION, it
+                    )
+                )
+            },
+            onRemoteSongResolved = {}
+        )
+
         mediaSession = MediaSession.Builder(this, player)
             .setCallback(MyCallBack())
             .setCustomLayout(ImmutableList.of(command))
             .build()
+
+        instance = this
     }
 
     private inner class MyCallBack : MediaSession.Callback {
@@ -108,16 +143,22 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = mediaSession
 
     override fun onDestroy() {
+        instance = null
         mediaSession?.run {
             player.release()
             release()
             mediaSession = null
         }
+        job.cancel()
         super.onDestroy()
     }
 
     companion object {
         const val ACTION_FAVORITES = "action_favorites"
         const val INTENT_EXO_PLAYER_EXCEPTION = "intent_exo_player_exception"
+
+        private var instance: PlaybackService? = null
+
+        fun getPlaybackManager(): PlaybackManager = instance?.playbackManager!!
     }
 }

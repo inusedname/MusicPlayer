@@ -37,6 +37,7 @@ data class PlayerState(
 
 class PlaybackManager(
     private val coroutineScope: CoroutineScope,
+    val player: Player,
     private val onlineSongRepository: OnlineSongRepository,
     private val onException: (Throwable) -> Unit,
     private val onRemoteSongResolved: (Song) -> Unit,
@@ -44,45 +45,20 @@ class PlaybackManager(
     private val playbackQueue = mutableListOf<String>()
     private val streamMetadataCache = LruCache<String, Song>(10)
 
-    private val _player = MutableStateFlow<Player?>(null)
-    val playerFlow = _player.asStateFlow()
-
-    private val player get() = _player.value
-
-    private var nextTrackJob: Job? = null
     val currentSong = MutableStateFlow<Song?>(null)
     val currentState = MutableStateFlow(PlayerState())
 
-    @OptIn(UnstableApi::class)
-    fun init(context: Context) {
-        val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        val future = MediaController.Builder(context, token).buildAsync()
-        Futures.addCallback(
-            future,
-            object : FutureCallback<MediaController> {
-                override fun onSuccess(result: MediaController?) {
-                    _player.value = result
-                    initPlayer()
-                }
-
-                override fun onFailure(t: Throwable) {
-                    onException(t)
-                }
-            },
-            MoreExecutors.directExecutor()
-        )
-    }
-
     fun release() {
-        player?.release()
-        _player.value = null
-        nextTrackJob?.cancel()
         playbackQueue.clear()
         streamMetadataCache.evictAll()
     }
 
+    init {
+        initPlayer()
+    }
+
     private fun initPlayer() {
-        player?.addListener(object : Player.Listener {
+        player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 super.onMediaItemTransition(mediaItem, reason)
                 (mediaItem?.localConfiguration?.uri?.toString() ?: "").let {
@@ -93,8 +69,8 @@ class PlaybackManager(
             override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                 super.onTimelineChanged(timeline, reason)
                 currentState.value = PlayerState(
-                    hasNext = player?.hasNextMediaItem() == true,
-                    hasPrevious = player?.hasPreviousMediaItem() == true
+                    hasNext = player.hasNextMediaItem(),
+                    hasPrevious = player.hasPreviousMediaItem()
                 )
             }
 
@@ -106,7 +82,7 @@ class PlaybackManager(
         coroutineScope.launch {
             while(true) {
                 delay(5000)
-                if (playbackQueue.isNotEmpty() && player?.hasNextMediaItem() == false) {
+                if (playbackQueue.isNotEmpty() && !player.hasNextMediaItem()) {
                     prepareNextSong()
                 }
             }
@@ -134,11 +110,10 @@ class PlaybackManager(
                     .build()
             )
             .build()
-        player?.addMediaItem(mediaItem)
-        Timber.d("player medium size: ${player?.mediaItemCount}")
-        if (player?.playbackState == Player.STATE_IDLE) {
-            player?.prepare()
-            player?.play()
+        player.addMediaItem(mediaItem)
+        if (player.playbackState == Player.STATE_IDLE) {
+            player.prepare()
+            player.play()
         }
     }
 
@@ -157,32 +132,27 @@ class PlaybackManager(
 
     suspend fun playImmediately(searchEntry: SearchEntry) {
         playbackQueue.add(searchEntry.url)
-        nextTrackJob?.cancelAndJoin()
-        player?.clearMediaItems()
+        player.clearMediaItems()
         prepareNextSong()
-        player?.play()
+        player.play()
     }
 
     suspend fun playImmediately(song: Song) {
         playbackQueue.add(song.getStreamUri().toString())
         streamMetadataCache.put(song.getStreamUri().toString(), song)
-        nextTrackJob?.cancelAndJoin()
-        player?.clearMediaItems()
+        player.clearMediaItems()
         prepareNextSong()
-        player?.play()
+        player.play()
     }
 
     fun hasNextTrack(): Boolean {
         return playbackQueue.size > 1
     }
 
-    fun nextTrack() {
+    suspend fun nextTrack() {
         if (playbackQueue.size > 1) {
-            nextTrackJob?.cancel()
-            coroutineScope.launch {
-                prepareNextSong()
-                player?.seekToNext()
-            }
+            prepareNextSong()
+            player.seekToNext()
         }
     }
 
@@ -197,5 +167,5 @@ class PlaybackManager(
         // TODO
     }
 
-    val currentMediaItem: MediaItem? get() = player!!.currentMediaItem
+    val currentMediaItem: MediaItem? get() = player.currentMediaItem
 }
