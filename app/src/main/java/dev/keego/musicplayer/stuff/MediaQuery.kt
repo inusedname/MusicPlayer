@@ -24,8 +24,8 @@ object MediaQuery {
                 MediaStore.Audio.Media.ALBUM_ID,
                 MediaStore.Audio.Media.ALBUM
             ),
-            null,
-            null,
+            MediaStore.MediaColumns.RELATIVE_PATH + " LIKE ?",
+            arrayOf("%Music/%"),
             null
         )?.use {
             while (it.moveToNext()) {
