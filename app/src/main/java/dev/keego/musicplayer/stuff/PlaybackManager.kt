@@ -49,11 +49,9 @@ class PlaybackManager(
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 super.onMediaItemTransition(mediaItem, reason)
-                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                    (mediaItem?.localConfiguration?.uri?.toString())?.let {
-                        currentSong.value = streamMetadataCache[it]
-                        currentState.value = currentState.value.copy(loading = true)
-                    }
+                (mediaItem?.localConfiguration?.uri?.toString())?.let {
+                    currentSong.value = streamMetadataCache[it]
+                    currentState.value = currentState.value.copy(loading = true)
                 }
             }
 
