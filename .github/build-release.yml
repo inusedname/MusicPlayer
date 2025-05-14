@@ -1,0 +1,97 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and Release APK
+    runs-on: ubuntu-latest
+    if: github.event.before != '0000000000000000000000000000000000000000' # Skip on first commit to main
+
+    steps:
+      - name: Check if merged from develop
+        id: check_merge
+        run: |
+          MERGE_BASE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}" | \
+            jq -r '.parents | length')
+          if [ "$MERGE_BASE" -gt 1 ]; then
+            echo "is_merge=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_merge=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout code
+        if: steps.check_merge.outputs.is_merge == 'true'
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        if: steps.check_merge.outputs.is_merge == 'true'
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: chmod +x gradlew
+
+      - name: Run unit tests
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: ./gradlew test --stacktrace
+
+      - name: Build debug APK
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: ./gradlew assembleDebug --stacktrace
+
+#      - name: Build release APK
+#        if: steps.check_merge.outputs.is_merge == 'true'
+#        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Get version info
+        if: steps.check_merge.outputs.is_merge == 'true'
+        id: version
+        run: |
+          VERSION_NAME=$(grep "versionName" app/build.gradle | awk '{print $2}' | tr -d '"')
+          VERSION_CODE=$(grep "versionCode" app/build.gradle | awk '{print $2}' | tr -d ' ')
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        if: steps.check_merge.outputs.is_merge == 'true'
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.version.outputs.version_name }}-${{ steps.version.outputs.version_code }}-${{ steps.version.outputs.timestamp }}
+          release_name: Release v${{ steps.version.outputs.version_name }} (Build ${{ steps.version.outputs.version_code }})
+          draft: false
+          prerelease: false
+
+      - name: Upload Debug APK
+        if: steps.check_merge.outputs.is_merge == 'true'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: app/build/outputs/apk/debug/app-debug.apk
+          asset_name: MusicPlayer-v${{ steps.version.outputs.version_name }}-debug.apk
+          asset_content_type: application/vnd.android.package-archive
+
+#      - name: Upload Release APK
+#        if: steps.check_merge.outputs.is_merge == 'true'
+#        uses: actions/upload-release-asset@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          upload_url: ${{ steps.create_release.outputs.upload_url }}
+#          asset_path: app/build/outputs/apk/release/app-release.apk
+#          asset_name: MusicPlayer-v${{ steps.version.outputs.version_name }}-release.apk
+#          asset_content_type: application/vnd.android.package-archive
