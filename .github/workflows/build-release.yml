@@ -41,7 +41,7 @@ jobs:
 
       - name: Run unit tests
         if: steps.check_merge.outputs.is_merge == 'true'
-        run: ./gradlew test --stacktrace
+        run: ./gradlew testDebugUnitTest --stacktrace
 
       - name: Build debug APK
         if: steps.check_merge.outputs.is_merge == 'true'
